@@ -1,0 +1,24 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Chatwoot droplet
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: 209.38.231.66
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/chatwoot-source
+            git pull origin develop
+            cd ~
+            docker-compose build
+            docker-compose down --remove-orphans
+            docker-compose up -d
