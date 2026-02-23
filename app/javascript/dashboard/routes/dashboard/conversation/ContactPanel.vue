@@ -23,6 +23,7 @@ import ShopifyOrdersList from 'dashboard/components/widgets/conversation/Shopify
 import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader.vue';
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
+import VoltCustomerInfo from 'dashboard/components/widgets/conversation/VoltCustomerInfo.vue';
 
 const props = defineProps({
   conversationId: {
@@ -149,8 +150,23 @@ onMounted(() => {
         @end="onDragEnd"
       >
         <template #item="{ element }">
+          <div v-if="element.name === 'volt_customer_info'">
+            <AccordionItem
+              :title="
+                $t('CONVERSATION_SIDEBAR.ACCORDION.VOLT_CUSTOMER_INFO')
+              "
+              :is-open="isContactSidebarItemOpen('is_volt_customer_info_open')"
+              compact
+              @toggle="
+                value =>
+                  toggleSidebarUIState('is_volt_customer_info_open', value)
+              "
+            >
+              <VoltCustomerInfo :contact-id="contactId" />
+            </AccordionItem>
+          </div>
           <div
-            v-if="element.name === 'conversation_actions'"
+            v-else-if="element.name === 'conversation_actions'"
             class="conversation--actions"
           >
             <AccordionItem

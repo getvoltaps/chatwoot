@@ -360,7 +360,17 @@
       "PREVIOUS_CONVERSATION": "Previous Conversations",
       "MACROS": "Macros",
       "LINEAR_ISSUES": "Linked Linear Issues",
-      "SHOPIFY_ORDERS": "Shopify Orders"
+      "SHOPIFY_ORDERS": "Shopify Orders",
+      "VOLT_CUSTOMER_INFO": "Volt Customer Info"
+    },
+    "VOLT": {
+      "ERROR": "Error loading Volt customer info",
+      "NO_EMAIL": "No email address available to search",
+      "NO_RESULTS": "No Volt customer found",
+      "ID": "Volt ID",
+      "NAME": "Name",
+      "EMAIL": "Email",
+      "PHONE": "Phone"
     },
     "SHOPIFY": {
       "ORDER_ID": "Order #{id}",
