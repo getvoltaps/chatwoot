@@ -80,6 +80,7 @@ class DashboardController < ActionController::Base
       IS_ENTERPRISE: ChatwootApp.enterprise?,
       AZURE_APP_ID: GlobalConfigService.load('AZURE_APP_ID', ''),
       GIT_SHA: GIT_HASH,
+      GIT_AUTHOR: GIT_AUTHOR,
       ALLOWED_LOGIN_METHODS: allowed_login_methods
     }
   end

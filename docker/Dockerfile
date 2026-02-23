@@ -88,6 +88,8 @@ RUN if [ "$RAILS_ENV" = "production" ]; then \
 
 # Generate .git_sha file with current commit hash
 RUN git rev-parse HEAD > /app/.git_sha
+# Generate .git_author file with latest commit author
+RUN git log -1 --format='%an' > /app/.git_author
 
 # Remove unnecessary files
 RUN rm -rf /gems/ruby/3.4.0/cache/*.gem \
@@ -144,8 +146,9 @@ RUN if [ "$RAILS_ENV" != "production" ]; then \
 COPY --from=pre-builder /gems/ /gems/
 COPY --from=pre-builder /app /app
 
-# Copy .git_sha file from pre-builder stage
+# Copy .git_sha and .git_author files from pre-builder stage
 COPY --from=pre-builder /app/.git_sha /app/.git_sha
+COPY --from=pre-builder /app/.git_author /app/.git_author
 
 WORKDIR /app
 

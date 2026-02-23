@@ -14,3 +14,16 @@ def fetch_git_sha
 end
 
 GIT_HASH = fetch_git_sha
+
+def fetch_git_author
+  author = `git log -1 --format='%an'` if File.directory?('.git')
+  if author.present?
+    author.strip
+  elsif File.exist?('.git_author')
+    File.read('.git_author').strip
+  else
+    'unknown'
+  end
+end
+
+GIT_AUTHOR = fetch_git_author
