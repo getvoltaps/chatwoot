@@ -1,10 +1,10 @@
 <script setup>
-/* global axios */
 import { ref, watch, computed } from 'vue';
 import { useFunctionGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ContactInfoRow from 'dashboard/routes/dashboard/conversation/contact/ContactInfoRow.vue';
+import VoltAPI from 'dashboard/api/integrations/volt';
 
 const props = defineProps({
   contactId: {
@@ -29,10 +29,7 @@ const fetchVoltCustomer = async () => {
     loading.value = true;
     error.value = '';
     voltUser.value = null;
-    const response = await axios.get(
-      'https://api.getvolt.dk/v2/service/search',
-      { params: { q: email.value } }
-    );
+    const response = await VoltAPI.search(email.value);
     const users = response.data?.users || [];
     voltUser.value = users.length ? users[0] : null;
   } catch {

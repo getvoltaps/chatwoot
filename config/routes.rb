@@ -319,6 +319,11 @@ Rails.application.routes.draw do
                 get :orders
               end
             end
+            resource :volt, controller: 'volt', only: [] do
+              collection do
+                get :search
+              end
+            end
             resource :linear, controller: 'linear', only: [] do
               collection do
                 delete :destroy

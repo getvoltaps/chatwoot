@@ -37,11 +37,17 @@ const props = defineProps({
 });
 
 const {
+  uiSettings,
   updateUISettings,
   isContactSidebarItemOpen,
   conversationSidebarItemsOrder,
   toggleSidebarUIState,
 } = useUISettings();
+
+const isVoltSectionOpen = computed(() => {
+  const val = uiSettings.value.is_volt_customer_info_open;
+  return val === undefined ? true : val;
+});
 
 const dragging = ref(false);
 const conversationSidebarItems = ref([]);
@@ -155,7 +161,7 @@ onMounted(() => {
               :title="
                 $t('CONVERSATION_SIDEBAR.ACCORDION.VOLT_CUSTOMER_INFO')
               "
-              :is-open="isContactSidebarItemOpen('is_volt_customer_info_open')"
+              :is-open="isVoltSectionOpen"
               compact
               @toggle="
                 value =>
