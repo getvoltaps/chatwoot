@@ -110,7 +110,7 @@ export function cleanSignature(signature) {
  * @returns {string} - The signature with the delimiter added.
  */
 function appendDelimiter(signature) {
-  return `${SIGNATURE_DELIMITER}\n\n${cleanSignature(signature)}`;
+  return cleanSignature(signature);
 }
 
 /**
@@ -210,9 +210,8 @@ export function removeSignature(body, signature, channelType) {
     newBody = newBody.substring(0, signatureIndex).trimEnd();
   }
 
-  // Remove delimiter if it's at the end
+  // Remove delimiter if it's at the end (legacy support)
   if (newBody.endsWith(SIGNATURE_DELIMITER)) {
-    // if the delimiter is at the end, remove it
     newBody = newBody.slice(0, -SIGNATURE_DELIMITER.length);
   }
 
