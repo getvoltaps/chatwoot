@@ -168,7 +168,10 @@ onMounted(() => {
                   toggleSidebarUIState('is_volt_customer_info_open', value)
               "
             >
-              <VoltCustomerInfo :contact-id="contactId" />
+              <VoltCustomerInfo
+                :contact-id="contactId"
+                :conversation-id="conversationId"
+              />
             </AccordionItem>
           </div>
           <div

@@ -5,9 +5,14 @@ import { useI18n } from 'vue-i18n';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ContactInfoRow from 'dashboard/routes/dashboard/conversation/contact/ContactInfoRow.vue';
 import VoltAPI from 'dashboard/api/integrations/volt';
+import VoltEditionSelector from './VoltEditionSelector.vue';
 
 const props = defineProps({
   contactId: {
+    type: [Number, String],
+    required: true,
+  },
+  conversationId: {
     type: [Number, String],
     required: true,
   },
@@ -50,6 +55,7 @@ watch(
 
 <template>
   <div class="px-4 py-2 text-n-slate-12">
+    <VoltEditionSelector :conversation-id="conversationId" />
     <div v-if="!email" class="text-sm text-n-slate-11">
       {{ t('CONVERSATION_SIDEBAR.VOLT.NO_EMAIL') }}
     </div>

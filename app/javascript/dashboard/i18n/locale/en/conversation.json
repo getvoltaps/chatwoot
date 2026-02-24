@@ -370,7 +370,11 @@
       "ID": "Volt ID",
       "NAME": "Name",
       "EMAIL": "Email",
-      "PHONE": "Phone"
+      "PHONE": "Phone",
+      "EDITION": "Edition",
+      "SELECT_EDITION": "Select edition",
+      "SEARCH_EDITION": "Search editions...",
+      "NO_EDITION_FOUND": "No editions found"
     },
     "SHOPIFY": {
       "ORDER_ID": "Order #{id}",

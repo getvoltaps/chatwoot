@@ -322,6 +322,7 @@ Rails.application.routes.draw do
             resource :volt, controller: 'volt', only: [] do
               collection do
                 get :search
+                get :editions
               end
             end
             resource :linear, controller: 'linear', only: [] do

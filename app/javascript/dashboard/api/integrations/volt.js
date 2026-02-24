@@ -12,6 +12,10 @@ class VoltAPI extends ApiClient {
       params: { q: query },
     });
   }
+
+  getEditions() {
+    return axios.get(`${this.url}/editions`);
+  }
 }
 
 export default new VoltAPI();
