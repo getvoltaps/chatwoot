@@ -22,6 +22,14 @@ class VoltAPI extends ApiClient {
       conversation_id: conversationId,
     });
   }
+
+  getAiStats() {
+    return axios.get(`${this.url}/ai_stats`);
+  }
+
+  backfillAiConversations() {
+    return axios.post(`${this.url}/ai_backfill`);
+  }
 }
 
 export default new VoltAPI();

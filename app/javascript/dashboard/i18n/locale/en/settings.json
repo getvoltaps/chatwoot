@@ -381,7 +381,31 @@
     "DOCS": "Read docs",
     "SECURITY": "Security",
     "CAPTAIN_AI": "Captain",
+    "VOLT_AI": "Volt AI",
     "CONVERSATION_WORKFLOW": "Conversation Workflow"
+  },
+  "VOLT_AI_SETTINGS": {
+    "TITLE": "Volt AI",
+    "DESCRIPTION": "AI-powered draft replies that learn from your resolved conversations. The AI finds similar past tickets and uses them as reference to match your team's tone and style.",
+    "STATUS": {
+      "TITLE": "Status",
+      "DESCRIPTION": "Overview of your AI draft system configuration and data."
+    },
+    "BACKFILL": {
+      "TITLE": "Index Past Conversations",
+      "DESCRIPTION": "Index your resolved conversations so the AI can learn from them. New conversations are indexed automatically when resolved.",
+      "BUTTON": "Index All Resolved Conversations"
+    },
+    "HOW_IT_WORKS": {
+      "TITLE": "How It Works",
+      "DESCRIPTION": "The AI draft system uses your team's conversation history to generate better responses.",
+      "STEP_1_TITLE": "Conversations are indexed",
+      "STEP_1_DESC": "When a conversation is resolved, its content is stored and indexed for search. Click the backfill button above to index existing resolved conversations.",
+      "STEP_2_TITLE": "Similar conversations are found",
+      "STEP_2_DESC": "When a new message arrives, the AI searches for similar past conversations using full-text search.",
+      "STEP_3_TITLE": "AI generates a draft",
+      "STEP_3_DESC": "The AI uses the similar conversations as reference examples to generate a context summary and draft reply that matches your team's style."
+    }
   },
   "CAPTAIN_SETTINGS": {
     "TITLE": "Captain Settings",

@@ -581,12 +581,12 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
-        // {
-        //   name: 'Settings Captain',
-        //   label: t('SIDEBAR.CAPTAIN_AI'),
-        //   icon: 'i-woot-captain',
-        //   to: accountScopedRoute('captain_settings_index'),
-        // },
+        {
+          name: 'Settings Volt AI',
+          label: t('SIDEBAR.VOLT_AI'),
+          icon: 'i-ph-sparkle-fill',
+          to: accountScopedRoute('volt_ai_settings_index'),
+        },
         {
           name: 'Settings Agents',
           label: t('SIDEBAR.AGENTS'),

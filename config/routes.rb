@@ -324,6 +324,8 @@ Rails.application.routes.draw do
                 get :search
                 get :editions
                 post :ai_draft
+                get :ai_stats
+                post :ai_backfill
               end
             end
             resource :linear, controller: 'linear', only: [] do
