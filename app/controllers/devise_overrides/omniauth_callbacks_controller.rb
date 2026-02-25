@@ -32,14 +32,25 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
     redirect_to "#{mobile_deep_link_base}://auth/saml?#{params}", allow_other_host: true
   end
 
-  def sign_up_user
-    return redirect_to login_page_url(error: 'no-account-found') unless account_signup_allowed?
-    return redirect_to login_page_url(error: 'business-account-only') unless validate_signup_email_is_business_domain?
+  VOLT_ACCOUNT_ID = 2
+  VOLT_DOMAIN = 'getvolt.dk'.freeze
 
-    create_account_for_user
-    token = @resource.send(:set_reset_password_token)
-    frontend_url = ENV.fetch('FRONTEND_URL', nil)
-    redirect_to "#{frontend_url}/app/auth/password/edit?config=default&reset_password_token=#{token}"
+  def sign_up_user
+    email = auth_hash.dig('info', 'email')
+    domain = email.split('@').last&.downcase
+
+    return redirect_to login_page_url(error: 'business-account-only') unless domain == VOLT_DOMAIN
+
+    @resource = User.create!(
+      name: auth_hash.dig('info', 'name'),
+      email: email,
+      password: SecureRandom.alphanumeric(24),
+      confirmed_at: Time.current
+    )
+    AccountUser.create!(account_id: VOLT_ACCOUNT_ID, user_id: @resource.id, role: :administrator)
+    Avatar::AvatarFromUrlJob.perform_later(@resource, auth_hash.dig('info', 'image'))
+
+    sign_in_user
   end
 
   def login_page_url(error: nil, email: nil, sso_auth_token: nil)
