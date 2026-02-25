@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import MultiselectDropdown from 'shared/components/ui/MultiselectDropdown.vue';
@@ -59,6 +59,8 @@ const selectedItem = computed(() => {
   return match || { id: 0, name: currentValue.value };
 });
 
+const showSaved = ref(false);
+
 const onSelect = async item => {
   const value = item.id === '__none__' ? '' : item.name;
   const customAttributes = {
@@ -69,13 +71,23 @@ const onSelect = async item => {
     conversationId: props.conversationId,
     customAttributes,
   });
+  showSaved.value = true;
+  setTimeout(() => {
+    showSaved.value = false;
+  }, 1500);
 };
 </script>
 
 <template>
   <div class="mb-1">
-    <label class="text-xs font-medium text-n-slate-11 mb-1 block">
+    <label class="text-xs font-medium text-n-slate-11 mb-1 flex items-center gap-1">
       {{ label }}
+      <span
+        v-if="showSaved"
+        class="text-n-teal-11 text-xs transition-opacity"
+      >
+        Saved
+      </span>
     </label>
     <MultiselectDropdown
       :options="dropdownOptions"
