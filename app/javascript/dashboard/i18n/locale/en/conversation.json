@@ -383,7 +383,9 @@
       "SUBJECT": "Subject",
       "SELECT_SUBJECT": "Select subject",
       "SEARCH_SUBJECT": "Search subjects...",
-      "NO_SUBJECT_FOUND": "No subjects found"
+      "NO_SUBJECT_FOUND": "No subjects found",
+      "PEOPLE_ID": "People ID",
+      "PEOPLE_ID_PLACEHOLDER": "Enter People ID..."
     },
     "SHOPIFY": {
       "ORDER_ID": "Order #{id}",
