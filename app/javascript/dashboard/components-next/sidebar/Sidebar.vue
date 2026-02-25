@@ -73,10 +73,12 @@ const toggleShortcutModalFn = show => {
 
 useSidebarKeyboardShortcuts(toggleShortcutModalFn);
 
-const expandedItem = ref(null);
+const expandedItem = ref('Conversation');
 
 const setExpandedItem = name => {
-  expandedItem.value = expandedItem.value === name ? null : name;
+  // Keep Conversations always expanded
+  if (name === 'Conversation' && expandedItem.value === 'Conversation') return;
+  expandedItem.value = expandedItem.value === name ? 'Conversation' : name;
 };
 
 const {
@@ -720,7 +722,7 @@ const menuItems = computed(() => {
         },
       ],
     },
-  ];
+  ].filter(item => !['Captain', 'Campaigns', 'Portals'].includes(item.name));
 });
 </script>
 
