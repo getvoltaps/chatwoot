@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, toRef } from 'vue';
 import { useFunctionGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
@@ -19,7 +19,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const contact = useFunctionGetter('contacts/getContact', props.contactId);
+const contact = useFunctionGetter('contacts/getContact', toRef(props, 'contactId'));
 
 const email = computed(() => contact.value?.email);
 
