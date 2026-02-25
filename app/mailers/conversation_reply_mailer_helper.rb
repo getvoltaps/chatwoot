@@ -47,12 +47,12 @@ module ConversationReplyMailerHelper
   def base_smtp_settings(domain)
     {
       address: domain,
-      port: 587,
+      port: 465,
       user_name: @channel.imap_login,
       password: @channel.provider_config['access_token'],
       domain: domain,
-      tls: false,
-      enable_starttls_auto: true,
+      tls: true,
+      enable_starttls_auto: false,
       openssl_verify_mode: 'none',
       open_timeout: 15,
       read_timeout: 15,
