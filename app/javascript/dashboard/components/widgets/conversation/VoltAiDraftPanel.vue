@@ -166,13 +166,11 @@ useKeyboardEvents(keyboardEvents);
         </div>
         <div class="flex items-center gap-1">
           <NextButton
-            v-tooltip.top="
-              `${t('CONVERSATION.VOLT_AI.REFRESH_TOOLTIP')} (${refreshShortcut})`
-            "
             xs
             ghost
             class="text-n-slate-11"
             icon="i-lucide-refresh-cw"
+            :label="`(${refreshShortcut})`"
             @click="onRefreshClick"
           />
           <NextButton
@@ -221,12 +219,11 @@ useKeyboardEvents(keyboardEvents);
     <!-- Generate button (when no draft and not loading) -->
     <div v-else class="flex justify-end">
       <NextButton
-        v-tooltip.top="refreshShortcut"
         xs
         ghost
         class="text-n-slate-11"
         icon="i-ph-sparkle-fill"
-        label="AI Draft"
+        :label="`AI Draft (${refreshShortcut})`"
         @click="() => onGenerate()"
       />
     </div>

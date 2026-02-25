@@ -35,6 +35,9 @@ class Volt::AiDraftJob < ApplicationJob
 
   private
 
+  # Edition is auto-filled for all inboxes; Product and Subject only for inbox 1
+  INBOX_1_ONLY_FIELDS = %w[volt_product volt_subject].freeze
+
   FIELD_MAPPING = {
     'volt_edition' => :edition,
     'volt_product' => :product,
@@ -44,10 +47,12 @@ class Volt::AiDraftJob < ApplicationJob
   def autofill_custom_attributes(conversation, result)
     attrs = conversation.custom_attributes || {}
     filled = {}
+    inbox_id = conversation.inbox_id
 
     FIELD_MAPPING.each do |attr_key, result_key|
       next if attrs[attr_key].present?
       next if result[result_key].blank?
+      next if INBOX_1_ONLY_FIELDS.include?(attr_key) && inbox_id != 1
 
       filled[attr_key] = result[result_key]
     end
