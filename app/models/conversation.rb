@@ -222,6 +222,7 @@ class Conversation < ApplicationRecord
     notify_status_change
     create_activity
     notify_conversation_updation
+    index_volt_conversation
   end
 
   def handle_resolved_status_change
@@ -231,6 +232,13 @@ class Conversation < ApplicationRecord
     # rubocop:disable Rails/SkipsModelValidations
     update_column(:waiting_since, nil)
     # rubocop:enable Rails/SkipsModelValidations
+  end
+
+  def index_volt_conversation
+    return unless saved_change_to_status? && resolved?
+    return if messages.where(message_type: [:incoming, :outgoing]).none?
+
+    Volt::IndexConversationJob.perform_later(id)
   end
 
   def ensure_snooze_until_reset

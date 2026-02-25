@@ -1,6 +1,7 @@
 class Volt::AiDraftService
   MODEL = 'claude-haiku-4-5-20251001'.freeze
   MAX_CHARS = 100_000
+  MAX_SIMILAR = 3
 
   def initialize(conversation)
     @conversation = conversation
@@ -49,7 +50,7 @@ class Volt::AiDraftService
   private
 
   def system_prompt
-    <<~PROMPT
+    base = <<~PROMPT
       You are an AI assistant helping customer support agents at Volt (a festival/event rental company).
       You will receive a conversation between a customer and support agents.
 
@@ -59,30 +60,67 @@ class Volt::AiDraftService
 
       Output ONLY valid JSON, no markdown fences, no extra text.
     PROMPT
+
+    examples = similar_conversations_prompt
+    return base if examples.blank?
+
+    base + examples
+  end
+
+  def similar_conversations_prompt
+    similar = find_similar_conversations
+    return nil if similar.empty?
+
+    sections = similar.map.with_index(1) do |record, i|
+      "--- Example #{i} ---\n#{record.content}"
+    end
+
+    <<~PROMPT
+
+      Here are #{similar.size} similar past conversations that were successfully resolved. Use them as reference for tone, style, and the kind of answers that work:
+
+      #{sections.join("\n\n")}
+
+      Use these examples to inform your draft reply, but tailor it to the current conversation. Do not copy responses verbatim.
+    PROMPT
+  end
+
+  def find_similar_conversations
+    Volt::ConversationSummary.search_similar(
+      formatted_conversation,
+      account_id: @conversation.account_id,
+      limit: MAX_SIMILAR,
+      exclude_conversation_id: @conversation.id
+    )
+  rescue StandardError => e
+    Rails.logger.warn "[Volt::AiDraftService] Similar conversation lookup failed: #{e.message}"
+    []
   end
 
   def formatted_conversation
-    messages = @conversation.messages
-                            .where(message_type: [:incoming, :outgoing])
-                            .where(private: false)
-                            .order(:id)
+    @formatted_conversation ||= begin
+      messages = @conversation.messages
+                              .where(message_type: [:incoming, :outgoing])
+                              .where(private: false)
+                              .order(:id)
 
-    char_count = 0
-    lines = []
+      char_count = 0
+      lines = []
 
-    messages.each do |msg|
-      content = msg.content.to_s.strip
-      next if content.blank?
+      messages.each do |msg|
+        text = msg.content.to_s.strip
+        next if text.blank?
 
-      label = msg.incoming? ? 'Customer' : 'Agent'
-      line = "#{label}: #{content}"
-      break if char_count + line.length > MAX_CHARS
+        label = msg.incoming? ? 'Customer' : 'Agent'
+        line = "#{label}: #{text}"
+        break if char_count + line.length > MAX_CHARS
 
-      lines << line
-      char_count += line.length
+        lines << line
+        char_count += line.length
+      end
+
+      lines.join("\n\n")
     end
-
-    lines.join("\n\n")
   end
 
   def parse_response(text)
