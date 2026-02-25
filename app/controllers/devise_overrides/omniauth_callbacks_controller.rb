@@ -44,7 +44,7 @@ class DeviseOverrides::OmniauthCallbacksController < DeviseTokenAuth::OmniauthCa
     @resource = User.create!(
       name: auth_hash.dig('info', 'name'),
       email: email,
-      password: SecureRandom.alphanumeric(24),
+      password: "#{SecureRandom.alphanumeric(24)}!@#",
       confirmed_at: Time.current
     )
     AccountUser.create!(account_id: VOLT_ACCOUNT_ID, user_id: @resource.id, role: :administrator)
