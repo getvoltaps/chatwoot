@@ -21,8 +21,6 @@ const isLoading = computed(
   () => store.getters['voltAiDraft/isLoading'](conversationId.value)
 );
 
-const isVisible = computed(() => draft.value || isLoading.value);
-
 const onUseDraft = () => {
   if (draft.value?.draftReply) {
     emit('useDraft', draft.value.draftReply);
@@ -32,17 +30,27 @@ const onUseDraft = () => {
 const onDismiss = () => {
   store.dispatch('voltAiDraft/clearDraft', conversationId.value);
 };
+
+const onGenerate = () => {
+  store.dispatch('voltAiDraft/generateDraft', conversationId.value);
+};
 </script>
 
 <template>
-  <div v-if="isVisible" class="volt-ai-draft mx-2 mb-2 rounded-xl border border-n-weak bg-n-solid-1 overflow-hidden">
-    <div v-if="isLoading && !draft" class="flex items-center justify-center gap-2 py-3 px-4">
+  <div class="volt-ai-draft mx-2 mb-2 overflow-hidden">
+    <!-- Loading state -->
+    <div
+      v-if="isLoading && !draft"
+      class="flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-n-weak bg-n-solid-1"
+    >
       <Spinner :size="16" class="text-n-brand" />
       <span class="text-xs text-n-slate-11">
         {{ t('CONVERSATION.VOLT_AI.GENERATING') }}
       </span>
     </div>
-    <template v-else-if="draft">
+
+    <!-- Draft content -->
+    <div v-else-if="draft" class="rounded-xl border border-n-weak bg-n-solid-1">
       <div class="flex items-center justify-between px-4 pt-2 pb-1">
         <div class="flex items-center gap-1.5">
           <span class="i-ph-sparkle-fill text-n-violet-9 text-sm" />
@@ -51,6 +59,13 @@ const onDismiss = () => {
           </span>
         </div>
         <div class="flex items-center gap-1">
+          <NextButton
+            xs
+            ghost
+            class="text-n-slate-11"
+            icon="i-lucide-refresh-cw"
+            @click="onGenerate"
+          />
           <NextButton
             xs
             ghost
@@ -88,6 +103,18 @@ const onDismiss = () => {
           @click="onUseDraft"
         />
       </div>
-    </template>
+    </div>
+
+    <!-- Generate button (when no draft and not loading) -->
+    <div v-else class="flex justify-end">
+      <NextButton
+        xs
+        ghost
+        class="text-n-slate-11"
+        icon="i-ph-sparkle-fill"
+        label="AI Draft"
+        @click="onGenerate"
+      />
+    </div>
   </div>
 </template>

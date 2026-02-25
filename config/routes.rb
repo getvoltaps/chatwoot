@@ -323,6 +323,7 @@ Rails.application.routes.draw do
               collection do
                 get :search
                 get :editions
+                post :ai_draft
               end
             end
             resource :linear, controller: 'linear', only: [] do

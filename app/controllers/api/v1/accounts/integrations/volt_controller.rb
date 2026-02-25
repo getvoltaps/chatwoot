@@ -30,4 +30,11 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
       render json: { error: 'Volt API error' }, status: :unprocessable_entity
     end
   end
+
+  def ai_draft
+    conversation = Current.account.conversations.find_by!(display_id: params[:conversation_id])
+    authorize conversation, :show?
+    Volt::AiDraftJob.perform_later(conversation.id)
+    render json: { message: 'AI draft generation started' }, status: :ok
+  end
 end

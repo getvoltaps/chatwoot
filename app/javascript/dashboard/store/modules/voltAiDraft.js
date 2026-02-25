@@ -1,3 +1,5 @@
+import VoltAPI from 'dashboard/api/integrations/volt';
+
 const state = {
   drafts: {},
   loading: {},
@@ -38,6 +40,14 @@ const actions = {
   },
   clearDraft({ commit }, conversationId) {
     commit('CLEAR_DRAFT', conversationId);
+  },
+  async generateDraft({ commit }, conversationId) {
+    commit('SET_LOADING', conversationId);
+    try {
+      await VoltAPI.generateAiDraft(conversationId);
+    } catch {
+      commit('CLEAR_DRAFT', conversationId);
+    }
   },
 };
 

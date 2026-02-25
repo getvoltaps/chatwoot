@@ -16,6 +16,12 @@ class VoltAPI extends ApiClient {
   getEditions() {
     return axios.get(`${this.url}/editions`);
   }
+
+  generateAiDraft(conversationId) {
+    return axios.post(`${this.url}/ai_draft`, {
+      conversation_id: conversationId,
+    });
+  }
 }
 
 export default new VoltAPI();

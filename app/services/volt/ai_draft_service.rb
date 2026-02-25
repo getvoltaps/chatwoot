@@ -7,7 +7,12 @@ class Volt::AiDraftService
   end
 
   def perform
-    return nil if api_key.blank?
+    if api_key.blank?
+      Rails.logger.warn '[Volt::AiDraftService] ANTHROPIC_API_KEY is not set, skipping'
+      return nil
+    end
+
+    Rails.logger.info "[Volt::AiDraftService] Generating draft for conversation #{@conversation.display_id}"
 
     response = HTTParty.post(
       'https://api.anthropic.com/v1/messages',
@@ -25,12 +30,17 @@ class Volt::AiDraftService
       timeout: 30
     )
 
-    return nil unless response.success?
+    unless response.success?
+      Rails.logger.error "[Volt::AiDraftService] API error #{response.code}: #{response.body.to_s.truncate(500)}"
+      return nil
+    end
 
     content = response.dig('content', 0, 'text')
-    parse_response(content)
+    result = parse_response(content)
+    Rails.logger.info "[Volt::AiDraftService] Draft generated successfully for conversation #{@conversation.display_id}"
+    result
   rescue StandardError => e
-    Rails.logger.error "[Volt::AiDraftService] Error for conversation #{@conversation.display_id}: #{e.message}"
+    Rails.logger.error "[Volt::AiDraftService] Error for conversation #{@conversation.display_id}: #{e.class} - #{e.message}"
     nil
   end
 

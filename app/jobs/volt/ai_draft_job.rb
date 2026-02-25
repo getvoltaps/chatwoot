@@ -2,11 +2,19 @@ class Volt::AiDraftJob < ApplicationJob
   queue_as :low
 
   def perform(conversation_id)
+    Rails.logger.info "[Volt::AiDraftJob] Starting for conversation_id=#{conversation_id}"
+
     conversation = Conversation.find_by(id: conversation_id)
-    return if conversation.blank?
+    if conversation.blank?
+      Rails.logger.warn "[Volt::AiDraftJob] Conversation #{conversation_id} not found"
+      return
+    end
 
     result = Volt::AiDraftService.new(conversation).perform
-    return if result.blank?
+    if result.blank?
+      Rails.logger.warn "[Volt::AiDraftJob] No result for conversation #{conversation.display_id}"
+      return
+    end
 
     account = conversation.account
     tokens = agent_tokens(account, conversation)
@@ -18,6 +26,7 @@ class Volt::AiDraftJob < ApplicationJob
       account_id: account.id
     }
 
+    Rails.logger.info "[Volt::AiDraftJob] Broadcasting draft for conversation #{conversation.display_id} to #{tokens.size} tokens"
     ::ActionCableBroadcastJob.perform_later(tokens, 'volt.ai_draft', payload)
   end
 
