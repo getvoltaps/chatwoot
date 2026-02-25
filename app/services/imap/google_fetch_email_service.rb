@@ -14,4 +14,9 @@ class Imap::GoogleFetchEmailService < Imap::BaseFetchEmailService
   def imap_password
     Google::RefreshOauthTokenService.new(channel: channel).access_token
   end
+
+  def since
+    previous_day = Time.zone.today - 30
+    previous_day.strftime('%d-%b-%Y')
+  end
 end

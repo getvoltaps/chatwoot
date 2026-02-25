@@ -3,6 +3,7 @@ import { useStore, useStoreGetters } from 'dashboard/composables/store';
 
 export const DEFAULT_CONVERSATION_SIDEBAR_ITEMS_ORDER = Object.freeze([
   { name: 'volt_customer_info' },
+  { name: 'volt_people_culture' },
   { name: 'conversation_actions' },
   { name: 'macros' },
   { name: 'conversation_info' },

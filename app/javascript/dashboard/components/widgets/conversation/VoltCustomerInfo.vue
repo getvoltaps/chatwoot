@@ -6,6 +6,29 @@ import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ContactInfoRow from 'dashboard/routes/dashboard/conversation/contact/ContactInfoRow.vue';
 import VoltAPI from 'dashboard/api/integrations/volt';
 import VoltEditionSelector from './VoltEditionSelector.vue';
+import VoltAttributeSelector from './VoltAttributeSelector.vue';
+
+const PRODUCT_OPTIONS = [
+  { id: 1, name: 'Volt Charging' },
+  { id: 2, name: 'Brick Charging' },
+  { id: 3, name: 'Locker' },
+  { id: 4, name: 'Cool Locker' },
+  { id: 5, name: 'Soundboks' },
+  { id: 6, name: 'Soundlock' },
+  { id: 7, name: 'Other products' },
+];
+
+const SUBJECT_OPTIONS = [
+  { id: 1, name: 'Order confirmation' },
+  { id: 2, name: 'Deposits' },
+  { id: 3, name: 'Changes to order' },
+  { id: 4, name: 'Cancellation' },
+  { id: 5, name: 'Problems on-site' },
+  { id: 6, name: 'Complaints' },
+  { id: 7, name: 'Technical issues' },
+  { id: 8, name: 'Sales lead' },
+  { id: 9, name: 'General / Other' },
+];
 
 const props = defineProps({
   contactId: {
@@ -93,8 +116,26 @@ watch(
         show-copy
       />
     </div>
-    <div class="mt-3">
+    <div class="mt-3 flex flex-col gap-1">
       <VoltEditionSelector :conversation-id="conversationId" />
+      <VoltAttributeSelector
+        :conversation-id="conversationId"
+        attribute-key="volt_product"
+        :label="t('CONVERSATION_SIDEBAR.VOLT.PRODUCT')"
+        :placeholder="t('CONVERSATION_SIDEBAR.VOLT.SELECT_PRODUCT')"
+        :search-placeholder="t('CONVERSATION_SIDEBAR.VOLT.SEARCH_PRODUCT')"
+        :no-result-text="t('CONVERSATION_SIDEBAR.VOLT.NO_PRODUCT_FOUND')"
+        :options="PRODUCT_OPTIONS"
+      />
+      <VoltAttributeSelector
+        :conversation-id="conversationId"
+        attribute-key="volt_subject"
+        :label="t('CONVERSATION_SIDEBAR.VOLT.SUBJECT')"
+        :placeholder="t('CONVERSATION_SIDEBAR.VOLT.SELECT_SUBJECT')"
+        :search-placeholder="t('CONVERSATION_SIDEBAR.VOLT.SEARCH_SUBJECT')"
+        :no-result-text="t('CONVERSATION_SIDEBAR.VOLT.NO_SUBJECT_FOUND')"
+        :options="SUBJECT_OPTIONS"
+      />
     </div>
   </div>
 </template>

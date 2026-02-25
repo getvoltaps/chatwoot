@@ -24,6 +24,7 @@ import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import VoltCustomerInfo from 'dashboard/components/widgets/conversation/VoltCustomerInfo.vue';
+import VoltPeopleCulture from 'dashboard/components/widgets/conversation/VoltPeopleCulture.vue';
 
 const props = defineProps({
   conversationId: {
@@ -46,6 +47,11 @@ const {
 
 const isVoltSectionOpen = computed(() => {
   const val = uiSettings.value.is_volt_customer_info_open;
+  return val === undefined ? true : val;
+});
+
+const isVoltPeopleCultureOpen = computed(() => {
+  const val = uiSettings.value.is_volt_people_culture_open;
   return val === undefined ? true : val;
 });
 
@@ -172,6 +178,21 @@ onMounted(() => {
                 :contact-id="contactId"
                 :conversation-id="conversationId"
               />
+            </AccordionItem>
+          </div>
+          <div v-else-if="element.name === 'volt_people_culture'">
+            <AccordionItem
+              :title="
+                $t('CONVERSATION_SIDEBAR.ACCORDION.VOLT_PEOPLE_CULTURE')
+              "
+              :is-open="isVoltPeopleCultureOpen"
+              compact
+              @toggle="
+                value =>
+                  toggleSidebarUIState('is_volt_people_culture_open', value)
+              "
+            >
+              <VoltPeopleCulture :conversation-id="conversationId" />
             </AccordionItem>
           </div>
           <div

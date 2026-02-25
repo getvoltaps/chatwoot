@@ -361,7 +361,8 @@
       "MACROS": "Macros",
       "LINEAR_ISSUES": "Linked Linear Issues",
       "SHOPIFY_ORDERS": "Shopify Orders",
-      "VOLT_CUSTOMER_INFO": "Volt Customer Info"
+      "VOLT_CUSTOMER_INFO": "Volt Customer Info",
+      "VOLT_PEOPLE_CULTURE": "Volt People&Culture"
     },
     "VOLT": {
       "ERROR": "Error loading Volt customer info",
@@ -374,7 +375,15 @@
       "EDITION": "Edition",
       "SELECT_EDITION": "Select edition",
       "SEARCH_EDITION": "Search editions...",
-      "NO_EDITION_FOUND": "No editions found"
+      "NO_EDITION_FOUND": "No editions found",
+      "PRODUCT": "Product",
+      "SELECT_PRODUCT": "Select product",
+      "SEARCH_PRODUCT": "Search products...",
+      "NO_PRODUCT_FOUND": "No products found",
+      "SUBJECT": "Subject",
+      "SELECT_SUBJECT": "Select subject",
+      "SEARCH_SUBJECT": "Search subjects...",
+      "NO_SUBJECT_FOUND": "No subjects found"
     },
     "SHOPIFY": {
       "ORDER_ID": "Order #{id}",
