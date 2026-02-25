@@ -37,7 +37,9 @@ class Volt::AiDraftService
 
     content = response.dig('content', 0, 'text')
     result = parse_response(content)
-    Rails.logger.info "[Volt::AiDraftService] Draft generated successfully for conversation #{@conversation.display_id}"
+    if result
+      Rails.logger.info "[Volt::AiDraftService] Draft generated successfully for conversation #{@conversation.display_id}"
+    end
     result
   rescue StandardError => e
     Rails.logger.error "[Volt::AiDraftService] Error for conversation #{@conversation.display_id}: #{e.class} - #{e.message}"
@@ -86,7 +88,9 @@ class Volt::AiDraftService
   def parse_response(text)
     return nil if text.blank?
 
-    json = JSON.parse(text)
+    # Strip markdown code fences if present (e.g. ```json ... ```)
+    cleaned = text.strip.gsub(/\A```\w*\n?/, '').gsub(/\n?```\z/, '').strip
+    json = JSON.parse(cleaned)
     context = json['context'].to_s.strip
     draft = json['draft_reply'].to_s.strip
     return nil if context.blank? && draft.blank?
