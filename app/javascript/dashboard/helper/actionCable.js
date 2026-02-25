@@ -34,6 +34,7 @@ class ActionCableConnector extends BaseActionCableConnector {
       'conversation.updated': this.onConversationUpdated,
       'account.cache_invalidated': this.onCacheInvalidate,
       'copilot.message.created': this.onCopilotMessageCreated,
+      'volt.ai_draft': this.onVoltAiDraft,
     };
   }
 
@@ -104,6 +105,10 @@ class ActionCableConnector extends BaseActionCableConnector {
       lastActivityAt,
       conversationId,
     });
+    // Show loading state for AI draft when incoming message arrives
+    if (data.message_type === 0) {
+      this.app.$store.dispatch('voltAiDraft/setLoading', conversationId);
+    }
   };
 
   // eslint-disable-next-line class-methods-use-this
@@ -192,6 +197,10 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onCopilotMessageCreated = data => {
     this.app.$store.dispatch('copilotMessages/upsert', data);
+  };
+
+  onVoltAiDraft = data => {
+    this.app.$store.dispatch('voltAiDraft/setDraft', data);
   };
 
   onCacheInvalidate = data => {

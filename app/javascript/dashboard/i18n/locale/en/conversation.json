@@ -184,6 +184,12 @@
         }
       }
     },
+    "VOLT_AI": {
+      "GENERATING": "Generating AI draft...",
+      "CONTEXT_TITLE": "Context",
+      "DRAFT_TITLE": "Suggested Reply",
+      "USE_DRAFT": "Use Draft"
+    },
     "FOOTER": {
       "MESSAGE_SIGN_TOOLTIP": "Message signature",
       "ENABLE_SIGN_TOOLTIP": "Enable signature",

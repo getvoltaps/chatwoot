@@ -315,10 +315,17 @@ class Message < ApplicationRecord
     send_reply
     execute_message_template_hooks
     update_contact_activity
+    generate_volt_ai_draft
   end
 
   def update_contact_activity
     sender.update(last_activity_at: DateTime.now) if sender.is_a?(Contact)
+  end
+
+  def generate_volt_ai_draft
+    return unless incoming? && !private?
+
+    Volt::AiDraftJob.perform_later(conversation_id)
   end
 
   def update_waiting_since

@@ -11,6 +11,7 @@ import MessageList from 'next/message/MessageList.vue';
 import ConversationLabelSuggestion from './conversation/LabelSuggestion.vue';
 import Banner from 'dashboard/components/ui/Banner.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
+import VoltAiDraftPanel from './VoltAiDraftPanel.vue';
 
 // stores and apis
 import { mapGetters } from 'vuex';
@@ -43,6 +44,7 @@ export default {
     Banner,
     ConversationLabelSuggestion,
     Spinner,
+    VoltAiDraftPanel,
   },
   mixins: [inboxMixin],
   setup() {
@@ -437,6 +439,9 @@ export default {
       const payload = useSnakeCase(message);
       await this.$store.dispatch('sendMessageWithData', payload);
     },
+    handleUseDraft(draftText) {
+      emitter.emit(BUS_EVENTS.SET_EDITOR_CONTENT, draftText);
+    },
   },
 };
 </script>
@@ -520,6 +525,7 @@ export default {
           />
         </div>
       </div>
+      <VoltAiDraftPanel @use-draft="handleUseDraft" />
       <ReplyBox
         :pop-out-reply-box="isPopOutReplyBox"
         @update:pop-out-reply-box="isPopOutReplyBox = $event"
