@@ -61,7 +61,7 @@ class Volt::AiDraftService
       Return a JSON object with these keys:
       1. "context": 2-3 short sentences summarizing what this conversation is about and any relevant history. Be concise.
       2. "draft_reply": A suggested reply the agent can send to the customer. Write naturally, be helpful, and match the conversation language. Do NOT include any email signature or sign-off.
-      3. "edition": The best matching edition/event name from this list: #{edition_list}. Pick the single best match based on conversation context. If unclear, use null.
+      3. "edition": Copy the EXACT full name (including any code in parentheses) from this list: #{edition_list}. Pick the single best match based on conversation context. You MUST use the exact string from the list, e.g. "Sweden Rock 2026 (SWE26)" not just "Sweden Rock 2026". If unclear, use null.
       4. "product": One of: Volt Charging, Brick Charging, Locker, Cool Locker, Soundboks, Soundlock, Other products. Pick the best match. If unclear, use "Other products".
       5. "subject": One of: Order confirmation, Deposits, Changes to order, Cancellation, Problems on-site, Complaints, Technical issues, Sales lead, General / Other. Pick the best match. If unclear, use "General / Other".
 
@@ -150,12 +150,39 @@ class Volt::AiDraftService
     {
       context: context,
       draft_reply: draft,
-      edition: json['edition'].presence,
+      edition: match_edition(json['edition']),
       product: json['product'].presence,
       subject: json['subject'].presence
     }
   rescue JSON::ParserError
     Rails.logger.warn "[Volt::AiDraftService] Failed to parse JSON response: #{text.truncate(200)}"
+    nil
+  end
+
+  def match_edition(raw)
+    return nil if raw.blank?
+
+    editions = edition_names
+    return nil if editions.empty?
+
+    # Exact match first
+    exact = editions.find { |e| e == raw }
+    return exact if exact
+
+    # Case-insensitive exact match
+    downcased = raw.downcase
+    exact_ci = editions.find { |e| e.downcase == downcased }
+    return exact_ci if exact_ci
+
+    # Partial match: AI returned "Sweden Rock 2026" but list has "Sweden Rock 2026 (SWE26)"
+    partial = editions.find { |e| e.downcase.start_with?(downcased) || e.downcase.include?(downcased) }
+    return partial if partial
+
+    # Reverse partial: AI returned something longer, check if any edition name is contained in it
+    reverse = editions.find { |e| downcased.include?(e.downcase) }
+    return reverse if reverse
+
+    Rails.logger.info "[Volt::AiDraftService] No edition match for '#{raw}', available: #{editions.first(5).join(', ')}"
     nil
   end
 
