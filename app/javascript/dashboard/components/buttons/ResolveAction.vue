@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore, useStoreGetters } from 'dashboard/composables/store';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useConversationRequiredAttributes } from 'dashboard/composables/useConversationRequiredAttributes';
 
 import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
@@ -28,6 +29,7 @@ const { checkMissingAttributes } = useConversationRequiredAttributes();
 const arrowDownButtonRef = ref(null);
 const isLoading = ref(false);
 const resolveAttributesModalRef = ref(null);
+const resolveShortcut = useKbd(['alt', '+', 'E']);
 
 const [showActionsDropdown, toggleDropdown] = useToggle();
 const closeDropdown = () => toggleDropdown(false);
@@ -178,7 +180,7 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
     >
       <Button
         v-if="isOpen"
-        :label="t('CONVERSATION.HEADER.RESOLVE_ACTION')"
+        :label="`${t('CONVERSATION.HEADER.RESOLVE_ACTION')} (${resolveShortcut})`"
         size="sm"
         color="slate"
         no-animation
@@ -188,7 +190,7 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
       />
       <Button
         v-else-if="isResolved"
-        :label="t('CONVERSATION.HEADER.REOPEN_ACTION')"
+        :label="`${t('CONVERSATION.HEADER.REOPEN_ACTION')} (${resolveShortcut})`"
         size="sm"
         color="slate"
         no-animation

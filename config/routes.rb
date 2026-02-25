@@ -326,6 +326,7 @@ Rails.application.routes.draw do
                 post :ai_draft
                 get :ai_stats
                 post :ai_backfill
+                get :edition_report
               end
             end
             resource :linear, controller: 'linear', only: [] do

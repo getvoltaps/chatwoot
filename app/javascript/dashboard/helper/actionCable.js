@@ -201,6 +201,22 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onVoltAiDraft = data => {
     this.app.$store.dispatch('voltAiDraft/setDraft', data);
+
+    // If AI auto-filled custom attributes, update the conversation in the store
+    const autoFilled = data.auto_filled;
+    if (autoFilled && Object.keys(autoFilled).length > 0) {
+      const conversations =
+        this.app.$store.getters.getAllConversations || [];
+      const conversation = conversations.find(
+        c => c.display_id === data.conversation_id
+      );
+      if (conversation) {
+        this.app.$store.commit('UPDATE_CONVERSATION_CUSTOM_ATTRIBUTES', {
+          conversationId: conversation.id,
+          customAttributes: autoFilled,
+        });
+      }
+    }
   };
 
   onCacheInvalidate = data => {

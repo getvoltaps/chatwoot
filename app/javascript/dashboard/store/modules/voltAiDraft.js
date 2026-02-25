@@ -41,10 +41,10 @@ const actions = {
   clearDraft({ commit }, conversationId) {
     commit('CLEAR_DRAFT', conversationId);
   },
-  async generateDraft({ commit }, conversationId) {
+  async generateDraft({ commit }, { conversationId, agentContext = null } = {}) {
     commit('SET_LOADING', conversationId);
     try {
-      await VoltAPI.generateAiDraft(conversationId);
+      await VoltAPI.generateAiDraft(conversationId, agentContext);
     } catch {
       commit('CLEAR_DRAFT', conversationId);
     }

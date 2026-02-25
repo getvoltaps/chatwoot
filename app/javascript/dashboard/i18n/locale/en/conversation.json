@@ -188,7 +188,10 @@
       "GENERATING": "Generating AI draft...",
       "CONTEXT_TITLE": "Context",
       "DRAFT_TITLE": "Suggested Reply",
-      "USE_DRAFT": "Use Draft"
+      "USE_DRAFT": "Use Draft",
+      "CONTEXT_PLACEHOLDER": "Add context for the AI (e.g. 'lockers go on sale March 2nd')",
+      "CONTEXT_HINT": "Press Enter to regenerate with context, Esc to cancel",
+      "REFRESH_TOOLTIP": "Refresh with context"
     },
     "FOOTER": {
       "MESSAGE_SIGN_TOOLTIP": "Message signature",

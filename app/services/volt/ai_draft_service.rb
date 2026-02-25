@@ -3,8 +3,9 @@ class Volt::AiDraftService
   MAX_CHARS = 100_000
   MAX_SIMILAR = 3
 
-  def initialize(conversation)
+  def initialize(conversation, agent_context: nil)
     @conversation = conversation
+    @agent_context = agent_context
   end
 
   def perform
@@ -26,7 +27,7 @@ class Volt::AiDraftService
         model: MODEL,
         max_tokens: 1024,
         system: system_prompt,
-        messages: [{ role: 'user', content: formatted_conversation }]
+        messages: [{ role: 'user', content: user_message }]
       }.to_json,
       timeout: 30
     )
@@ -50,13 +51,19 @@ class Volt::AiDraftService
   private
 
   def system_prompt
+    editions = edition_names
+    edition_list = editions.any? ? editions.join(', ') : 'No editions available'
+
     base = <<~PROMPT
       You are an AI assistant helping customer support agents at Volt (a festival/event rental company).
       You will receive a conversation between a customer and support agents.
 
-      Return a JSON object with exactly two keys:
+      Return a JSON object with these keys:
       1. "context": 2-3 short sentences summarizing what this conversation is about and any relevant history. Be concise.
       2. "draft_reply": A suggested reply the agent can send to the customer. Write naturally, be helpful, and match the conversation language. Do NOT include any email signature or sign-off.
+      3. "edition": The best matching edition/event name from this list: #{edition_list}. Pick the single best match based on conversation context. If unclear, use null.
+      4. "product": One of: Volt Charging, Brick Charging, Locker, Cool Locker, Soundboks, Soundlock, Other products. Pick the best match. If unclear, use "Other products".
+      5. "subject": One of: Order confirmation, Deposits, Changes to order, Cancellation, Problems on-site, Complaints, Technical issues, Sales lead, General / Other. Pick the best match. If unclear, use "General / Other".
 
       Output ONLY valid JSON, no markdown fences, no extra text.
     PROMPT
@@ -97,6 +104,13 @@ class Volt::AiDraftService
     []
   end
 
+  def user_message
+    msg = formatted_conversation
+    return msg if @agent_context.blank?
+
+    "#{msg}\n\n--- Agent note ---\nThe agent has provided this additional context for the draft reply: #{@agent_context}"
+  end
+
   def formatted_conversation
     @formatted_conversation ||= begin
       messages = @conversation.messages
@@ -133,10 +147,36 @@ class Volt::AiDraftService
     draft = json['draft_reply'].to_s.strip
     return nil if context.blank? && draft.blank?
 
-    { context: context, draft_reply: draft }
+    {
+      context: context,
+      draft_reply: draft,
+      edition: json['edition'].presence,
+      product: json['product'].presence,
+      subject: json['subject'].presence
+    }
   rescue JSON::ParserError
     Rails.logger.warn "[Volt::AiDraftService] Failed to parse JSON response: #{text.truncate(200)}"
     nil
+  end
+
+  def edition_names
+    @edition_names ||= begin
+      response = HTTParty.get(
+        'https://api.getvolt.dk/editions',
+        headers: { 'Content-Type' => 'application/json', 'x-api-key' => Api::V1::Accounts::Integrations::VoltController::VOLT_API_KEY },
+        timeout: 10
+      )
+      return [] unless response.success?
+
+      editions = response.parsed_response
+      editions = editions['editions'] if editions.is_a?(Hash) && editions.key?('editions')
+      return [] unless editions.is_a?(Array)
+
+      editions.filter_map { |e| e['name'].presence || e['title'].presence }
+    rescue StandardError => e
+      Rails.logger.warn "[Volt::AiDraftService] Failed to fetch editions: #{e.message}"
+      []
+    end
   end
 
   def api_key

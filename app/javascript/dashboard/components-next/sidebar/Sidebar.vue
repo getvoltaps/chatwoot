@@ -499,6 +499,11 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.REPORTS_BOT'),
           to: accountScopedRoute('bot_reports'),
         },
+        {
+          name: 'Reports Editions',
+          label: t('SIDEBAR.REPORTS_EDITIONS'),
+          to: accountScopedRoute('volt_edition_reports'),
+        },
       ],
     },
     {

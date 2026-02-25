@@ -364,6 +364,7 @@
     "CUSTOM_ROLES": "Custom Roles",
     "BETA": "Beta",
     "REPORTS_OVERVIEW": "Overview",
+    "REPORTS_EDITIONS": "Editions",
     "REAUTHORIZE": "Your inbox connection has expired, please reconnect\n to continue receiving and sending messages",
     "HELP_CENTER": {
       "TITLE": "Help Center",
@@ -406,6 +407,24 @@
       "STEP_3_TITLE": "AI generates a draft",
       "STEP_3_DESC": "The AI uses the similar conversations as reference examples to generate a context summary and draft reply that matches your team's style."
     }
+  },
+  "VOLT_EDITION_REPORTS": {
+    "TITLE": "Edition Reports",
+    "DESCRIPTION": "Ticket distribution across editions with AI-generated theme summaries for the top editions.",
+    "FROM": "From",
+    "TO": "To",
+    "APPLY": "Apply",
+    "LOADING": "Loading report...",
+    "TOTAL_TICKETS": "Total Tickets",
+    "WITH_EDITION": "With Edition",
+    "EDITIONS_COUNT": "Unique Editions",
+    "TOP_EDITIONS": "Top 5 Editions",
+    "OTHER_EDITIONS": "Other Editions",
+    "EDITION": "Edition",
+    "TICKETS": "tickets",
+    "AI_SUMMARY": "AI Theme Summary",
+    "GENERATING_SUMMARY": "Generating summary...",
+    "EMPTY": "No edition data found. Make sure conversations have the Edition custom field set."
   },
   "CAPTAIN_SETTINGS": {
     "TITLE": "Captain Settings",
