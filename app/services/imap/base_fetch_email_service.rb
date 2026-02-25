@@ -64,6 +64,8 @@ class Imap::BaseFetchEmailService
       return
     end
 
+    mark_as_read(seq_no)
+
     inbound_mail = build_mail_from_string(mail_str)
     mail_info_logger(inbound_mail, seq_no)
     inbound_mail
@@ -117,6 +119,12 @@ class Imap::BaseFetchEmailService
   rescue Net::IMAP::Error => e
     Rails.logger.info "Logout failed for #{channel.email} - #{e.message}."
     imap_client.disconnect
+  end
+
+  def mark_as_read(seq_no)
+    imap_client.store(seq_no, '+FLAGS', [:Seen])
+  rescue StandardError => e
+    Rails.logger.info "[IMAP::FETCH_EMAIL_SERVICE] Failed to mark as read for #{channel.email} seq #{seq_no}: #{e.message}"
   end
 
   def build_mail_from_string(raw_email_content)
