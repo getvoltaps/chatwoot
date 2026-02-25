@@ -55,7 +55,6 @@ watch(
 
 <template>
   <div class="px-4 py-2 text-n-slate-12">
-    <VoltEditionSelector :conversation-id="conversationId" />
     <div v-if="!email" class="text-sm text-n-slate-11">
       {{ t('CONVERSATION_SIDEBAR.VOLT.NO_EMAIL') }}
     </div>
@@ -69,24 +68,19 @@ watch(
       {{ t('CONVERSATION_SIDEBAR.VOLT.NO_RESULTS') }}
     </div>
     <div v-else class="flex flex-col gap-1">
-      <ContactInfoRow
-        :value="voltUser.id"
-        icon="i-lucide-fingerprint"
-        emoji="🪪"
-        :title="t('CONVERSATION_SIDEBAR.VOLT.ID')"
-        show-copy
-      />
+      <!-- Hidden ID for debugging -->
+      <span v-if="voltUser.id" class="hidden" :data-volt-id="voltUser.id" />
       <ContactInfoRow
         :value="voltUser.name"
         icon="i-lucide-user"
-        emoji="👤"
+        emoji=""
         :title="t('CONVERSATION_SIDEBAR.VOLT.NAME')"
       />
       <ContactInfoRow
         :value="voltUser.email"
         :href="voltUser.email ? `mailto:${voltUser.email}` : ''"
         icon="i-lucide-mail"
-        emoji="✉️"
+        emoji=""
         :title="t('CONVERSATION_SIDEBAR.VOLT.EMAIL')"
         show-copy
       />
@@ -94,10 +88,13 @@ watch(
         :value="voltUser.phone"
         :href="voltUser.phone ? `tel:${voltUser.phone}` : ''"
         icon="i-lucide-phone"
-        emoji="📞"
+        emoji=""
         :title="t('CONVERSATION_SIDEBAR.VOLT.PHONE')"
         show-copy
       />
+    </div>
+    <div class="mt-3">
+      <VoltEditionSelector :conversation-id="conversationId" />
     </div>
   </div>
 </template>
