@@ -34,6 +34,9 @@ module ConversationReplyMailerHelper
   def oauth_smtp_settings
     return unless @inbox.email? && @channel.imap_enabled
     return unless oauth_provider_domain
+    # Skip direct SMTP to Gmail/Microsoft — use the global SMTP relay (e.g. Postmark)
+    # since DigitalOcean blocks outbound SMTP ports 25, 465, and 587
+    return if @inbox.channel.google?
 
     @options[:delivery_method] = :smtp
     @options[:delivery_method_options] = base_smtp_settings(oauth_provider_domain)
