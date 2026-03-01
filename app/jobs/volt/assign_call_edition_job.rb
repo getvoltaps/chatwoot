@@ -13,14 +13,25 @@ class Volt::AssignCallEditionJob < ApplicationJob
     return if attrs['volt_edition'].present?
 
     call_queue = attrs['call_queue'].to_s.strip
+    Rails.logger.info "[Volt::AssignCallEditionJob] Conv #{conversation.display_id} call_queue=#{call_queue.inspect}"
     return if call_queue.blank?
 
-    # Extract edition UUID from call_queue (e.g. "e2d840bb-ea7d-... → support (fallback)")
-    edition_id = call_queue.split('→').first.strip
-    return unless edition_id.match?(/\A[0-9a-f-]{36}\z/)
+    # Extract UUID from call_queue — handles formats like:
+    #   "e2d840bb-ea7d-485a-b58e-f1cdd5664dc5"
+    #   "e2d840bb-ea7d-485a-b58e-f1cdd5664dc5 → support (fallback)"
+    #   "e2d840bb-ea7d-485a-b58e-f1cdd5664dc5 -> support (fallback)"
+    uuid_match = call_queue.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)
+    unless uuid_match
+      Rails.logger.info "[Volt::AssignCallEditionJob] No UUID found in call_queue=#{call_queue.inspect} for conv #{conversation.display_id}"
+      return
+    end
 
+    edition_id = uuid_match[1]
     edition_name = fetch_edition_name(edition_id)
-    return if edition_name.blank?
+    if edition_name.blank?
+      Rails.logger.info "[Volt::AssignCallEditionJob] No edition found for UUID #{edition_id} (conv #{conversation.display_id})"
+      return
+    end
 
     conversation.update!(custom_attributes: attrs.merge('volt_edition' => edition_name))
     Rails.logger.info "[Volt::AssignCallEditionJob] Set volt_edition='#{edition_name}' for conversation #{conversation.display_id}"
