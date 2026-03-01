@@ -175,15 +175,22 @@ class Volt::AiDraftService
     return exact_ci if exact_ci
 
     # Partial match: AI returned "Sweden Rock 2026" but list has "Sweden Rock 2026 (SWE26)"
-    partial = editions.find { |e| e.downcase.start_with?(downcased) || e.downcase.include?(downcased) }
-    return partial if partial
+    candidates = editions.select { |e| e.downcase.start_with?(downcased) || e.downcase.include?(downcased) }
+    return prefer_current_year(candidates) if candidates.any?
 
     # Reverse partial: AI returned something longer, check if any edition name is contained in it
-    reverse = editions.find { |e| downcased.include?(e.downcase) }
-    return reverse if reverse
+    candidates = editions.select { |e| downcased.include?(e.downcase) }
+    return prefer_current_year(candidates) if candidates.any?
 
     Rails.logger.info "[Volt::AiDraftService] No edition match for '#{raw}', available: #{editions.first(5).join(', ')}"
     nil
+  end
+
+  def prefer_current_year(candidates)
+    return candidates.first if candidates.size == 1
+
+    current_year = Time.current.year.to_s
+    candidates.find { |e| e.include?(current_year) } || candidates.first
   end
 
   def edition_names
