@@ -151,22 +151,45 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
 
   def proxy_get(path, query = {})
     response = HTTParty.get("https://api.getvolt.dk#{path}", headers: volt_api_headers, query: query, timeout: 10)
-    render json: response.parsed_response, status: response.code
+    proxy_render(response)
+  rescue StandardError => e
+    Rails.logger.error "[VoltController] proxy_get #{path} failed: #{e.message}"
+    render json: { error: e.message }, status: :bad_gateway
   end
 
   def proxy_post(path, body = {})
     response = HTTParty.post("https://api.getvolt.dk#{path}", headers: volt_api_headers, body: body.to_json, timeout: 10)
-    render json: response.parsed_response, status: response.code
+    proxy_render(response)
+  rescue StandardError => e
+    Rails.logger.error "[VoltController] proxy_post #{path} failed: #{e.message}"
+    render json: { error: e.message }, status: :bad_gateway
   end
 
   def proxy_put(path, body = {})
     response = HTTParty.put("https://api.getvolt.dk#{path}", headers: volt_api_headers, body: body.to_json, timeout: 10)
-    render json: response.parsed_response, status: response.code
+    proxy_render(response)
+  rescue StandardError => e
+    Rails.logger.error "[VoltController] proxy_put #{path} failed: #{e.message}"
+    render json: { error: e.message }, status: :bad_gateway
   end
 
   def proxy_delete(path)
     response = HTTParty.delete("https://api.getvolt.dk#{path}", headers: volt_api_headers, timeout: 10)
     head response.code
+  rescue StandardError => e
+    Rails.logger.error "[VoltController] proxy_delete #{path} failed: #{e.message}"
+    render json: { error: e.message }, status: :bad_gateway
+  end
+
+  def proxy_render(response)
+    body = response.parsed_response
+    status = response.code
+
+    if body.nil?
+      render json: { error: "Upstream returned #{status}", body: response.body.to_s.truncate(500) }, status: status
+    else
+      render json: body, status: status
+    end
   end
 
   def generate_edition_summaries(account, edition_names, scope)
