@@ -327,6 +327,15 @@ Rails.application.routes.draw do
                 get :ai_stats
                 post :ai_backfill
                 get :edition_report
+                get :twilio_editions
+                get 'twilio_editions/:edition_id', action: :twilio_edition, as: :twilio_edition
+                post 'twilio_editions/:edition_id/agents', action: :twilio_add_edition_agent
+                delete 'twilio_editions/:edition_id/agents/:agent_id', action: :twilio_remove_edition_agent
+                get :twilio_queues
+                get :twilio_agents
+                post :twilio_agents, action: :twilio_add_agent, as: :twilio_add_agent
+                put 'twilio_agents/:agent_id', action: :twilio_update_agent
+                delete 'twilio_agents/:agent_id', action: :twilio_delete_agent
               end
             end
             resource :linear, controller: 'linear', only: [] do

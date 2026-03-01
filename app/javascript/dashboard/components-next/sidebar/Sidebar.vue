@@ -576,6 +576,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'Calls',
+      label: t('SIDEBAR.CALLS'),
+      icon: 'i-lucide-phone',
+      to: accountScopedRoute('calls_queues'),
+      activeOn: ['calls_queues', 'calls_edition'],
+    },
+    {
       name: 'Settings',
       label: t('SIDEBAR.SETTINGS'),
       icon: 'i-lucide-bolt',

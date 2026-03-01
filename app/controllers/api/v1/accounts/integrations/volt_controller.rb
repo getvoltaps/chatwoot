@@ -101,7 +101,73 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
     }, status: :ok
   end
 
+  # --- Twilio Queue Management (proxy to api.getvolt.dk) ---
+
+  def twilio_editions
+    proxy_get('/twilio/editions')
+  end
+
+  def twilio_edition
+    proxy_get("/twilio/editions/#{params[:edition_id]}")
+  end
+
+  def twilio_add_edition_agent
+    proxy_post("/twilio/editions/#{params[:edition_id]}/agents", twilio_agent_params)
+  end
+
+  def twilio_remove_edition_agent
+    proxy_delete("/twilio/editions/#{params[:edition_id]}/agents/#{params[:agent_id]}")
+  end
+
+  def twilio_queues
+    proxy_get('/twilio/queues')
+  end
+
+  def twilio_agents
+    proxy_get('/twilio/agents', params.permit(:edition_id, :queue).to_h)
+  end
+
+  def twilio_add_agent
+    proxy_post('/twilio/agents', twilio_agent_params.merge(params.permit(:queue_name).to_h))
+  end
+
+  def twilio_update_agent
+    proxy_put("/twilio/agents/#{params[:agent_id]}", twilio_agent_params)
+  end
+
+  def twilio_delete_agent
+    proxy_delete("/twilio/agents/#{params[:agent_id]}")
+  end
+
   private
+
+  def twilio_agent_params
+    params.permit(:agent_phone, :agent_name, :priority, :show_caller_id, :is_active).to_h.compact
+  end
+
+  def volt_api_headers
+    { 'Content-Type' => 'application/json', 'x-api-key' => VOLT_API_KEY }
+  end
+
+  def proxy_get(path, query = {})
+    response = HTTParty.get("https://api.getvolt.dk#{path}", headers: volt_api_headers, query: query, timeout: 10)
+    render json: response.parsed_response, status: response.code
+  end
+
+  def proxy_post(path, body = {})
+    response = HTTParty.post("https://api.getvolt.dk#{path}", headers: volt_api_headers, body: body.to_json, timeout: 10)
+    render json: response.parsed_response, status: response.code
+  end
+
+  def proxy_put(path, body = {})
+    response = HTTParty.put("https://api.getvolt.dk#{path}", headers: volt_api_headers, body: body.to_json, timeout: 10)
+    render json: response.parsed_response, status: response.code
+  end
+
+  def proxy_delete(path)
+    response = HTTParty.delete("https://api.getvolt.dk#{path}", headers: volt_api_headers, timeout: 10)
+    head response.code
+  end
 
   def generate_edition_summaries(account, edition_names, scope)
     api_key = ENV.fetch('ANTHROPIC_API_KEY', nil)

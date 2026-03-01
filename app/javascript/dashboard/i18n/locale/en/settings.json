@@ -383,6 +383,7 @@
     "SECURITY": "Security",
     "CAPTAIN_AI": "Captain",
     "VOLT_AI": "Volt AI",
+    "CALLS": "Calls",
     "CONVERSATION_WORKFLOW": "Conversation Workflow"
   },
   "VOLT_AI_SETTINGS": {

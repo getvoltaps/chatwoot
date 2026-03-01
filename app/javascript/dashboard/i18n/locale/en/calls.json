@@ -1,0 +1,81 @@
+{
+  "CALLS": {
+    "HEADER": "Call Queues",
+    "DESCRIPTION": "Manage Twilio call queues for editions and generic queues (support, HR, sales).",
+    "LOADING": "Loading queues...",
+    "EDITION_QUEUES": {
+      "TITLE": "Edition Queues",
+      "DESCRIPTION": "Editions appear in the phone menu automatically when the event is live. Assign agents to receive calls.",
+      "NAME": "Edition",
+      "START_DATE": "Start",
+      "END_DATE": "End",
+      "ACTIVE_NOW": "Active",
+      "AGENTS": "Agents",
+      "ACTIONS": "Actions",
+      "LIVE": "Live",
+      "UPCOMING": "Upcoming",
+      "ENDED": "Ended",
+      "EMPTY": "No editions with agents found."
+    },
+    "GENERIC_QUEUES": {
+      "TITLE": "Generic Queues",
+      "DESCRIPTION": "Fallback queues for support, HR, and sales calls.",
+      "QUEUE_NAME": "Queue",
+      "AGENTS": "Agents",
+      "EMPTY": "No generic queues found."
+    },
+    "EDITION_DETAIL": {
+      "BACK": "Back to Queues",
+      "AGENTS_TITLE": "Agents",
+      "NAME": "Name",
+      "PHONE": "Phone",
+      "PRIORITY": "Priority",
+      "SHOW_CALLER_ID": "Caller ID",
+      "ACTIVE": "Active",
+      "ACTIONS": "Actions",
+      "EMPTY": "No agents assigned to this edition.",
+      "DATES": "{start} — {end}",
+      "LIVE_BADGE": "Live Now"
+    },
+    "ADD_AGENT": {
+      "TITLE": "Add Agent",
+      "EDIT_TITLE": "Edit Agent",
+      "PHONE": {
+        "LABEL": "Phone Number",
+        "PLACEHOLDER": "+4512345678",
+        "HELP": "E.164 format (e.g. +4512345678)"
+      },
+      "NAME": {
+        "LABEL": "Name",
+        "PLACEHOLDER": "Agent name"
+      },
+      "PRIORITY": {
+        "LABEL": "Priority",
+        "HELP": "Lower number = called first (0 is highest priority)"
+      },
+      "SHOW_CALLER_ID": {
+        "LABEL": "Show Caller ID",
+        "HELP": "Show the real caller number to the agent"
+      },
+      "IS_ACTIVE": {
+        "LABEL": "Active",
+        "HELP": "Inactive agents won't receive calls"
+      },
+      "SUBMIT": "Add Agent",
+      "UPDATE": "Update Agent",
+      "CANCEL": "Cancel"
+    },
+    "DELETE_AGENT": {
+      "TITLE": "Remove Agent",
+      "MESSAGE": "Are you sure you want to remove this agent from the queue?",
+      "CONFIRM": "Remove",
+      "CANCEL": "Cancel"
+    },
+    "API": {
+      "AGENT_ADDED": "Agent added successfully",
+      "AGENT_UPDATED": "Agent updated successfully",
+      "AGENT_REMOVED": "Agent removed successfully",
+      "ERROR": "Something went wrong. Please try again."
+    }
+  }
+}
