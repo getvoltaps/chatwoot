@@ -139,10 +139,40 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
     proxy_delete("/twilio/agents/#{params[:agent_id]}")
   end
 
+  # --- Twilio Opening Hours (proxy to api.getvolt.dk) ---
+
+  def twilio_opening_hours
+    proxy_get('/twilio/opening-hours')
+  end
+
+  def twilio_queue_hours
+    proxy_get("/twilio/opening-hours/queue/#{params[:queue_name]}")
+  end
+
+  def twilio_update_queue_hours
+    proxy_put("/twilio/opening-hours/queue/#{params[:queue_name]}", opening_hours_params)
+  end
+
+  def twilio_edition_hours
+    proxy_get("/twilio/opening-hours/edition/#{params[:edition_id]}")
+  end
+
+  def twilio_update_edition_hours
+    proxy_put("/twilio/opening-hours/edition/#{params[:edition_id]}", opening_hours_params)
+  end
+
+  def twilio_delete_edition_hours
+    proxy_delete("/twilio/opening-hours/edition/#{params[:edition_id]}")
+  end
+
   private
 
   def twilio_agent_params
     params.permit(:agent_phone, :agent_name, :priority, :show_caller_id, :is_active).to_h.compact
+  end
+
+  def opening_hours_params
+    { opening_hours: params.require(:opening_hours).permit!.to_h }
   end
 
   def volt_api_headers

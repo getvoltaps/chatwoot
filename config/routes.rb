@@ -336,6 +336,12 @@ Rails.application.routes.draw do
                 post :twilio_agents, action: :twilio_add_agent, as: :twilio_add_agent
                 put 'twilio_agents/:agent_id', action: :twilio_update_agent
                 delete 'twilio_agents/:agent_id', action: :twilio_delete_agent
+                get :twilio_opening_hours
+                get 'twilio_opening_hours/queue/:queue_name', action: :twilio_queue_hours
+                put 'twilio_opening_hours/queue/:queue_name', action: :twilio_update_queue_hours
+                get 'twilio_opening_hours/edition/:edition_id', action: :twilio_edition_hours
+                put 'twilio_opening_hours/edition/:edition_id', action: :twilio_update_edition_hours
+                delete 'twilio_opening_hours/edition/:edition_id', action: :twilio_delete_edition_hours
               end
             end
             resource :linear, controller: 'linear', only: [] do

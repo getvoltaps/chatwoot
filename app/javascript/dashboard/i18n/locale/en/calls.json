@@ -71,10 +71,43 @@
       "CONFIRM": "Remove",
       "CANCEL": "Cancel"
     },
+    "OPENING_HOURS": {
+      "TITLE": "Opening Hours",
+      "DESCRIPTION": "Set when this queue accepts calls",
+      "SUPPORT_NOTE": "Support hours act as the global gate — if support is closed, all incoming calls are rejected.",
+      "DAYS": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      },
+      "CLOSED": "Closed",
+      "ADD_RANGE": "Add range",
+      "SAVE": "Save Hours",
+      "SAVED": "Opening hours saved",
+      "INHERITING": "Inheriting from support queue",
+      "USE_CUSTOM": "Use custom hours",
+      "RESET_INHERIT": "Reset to inherit",
+      "RESET_CONFIRM": "Remove custom hours? This edition will inherit support queue hours.",
+      "NOT_CONFIGURED": "No hours configured — queue is always open.",
+      "EXCEPTIONS": {
+        "TITLE": "Date Exceptions",
+        "DESCRIPTION": "Override hours for specific dates (holidays, events)",
+        "ADD": "Add exception",
+        "DATE": "Date",
+        "CLOSED_ALL_DAY": "Closed all day",
+        "EMPTY": "No date exceptions configured."
+      }
+    },
     "API": {
       "AGENT_ADDED": "Agent added successfully",
       "AGENT_UPDATED": "Agent updated successfully",
       "AGENT_REMOVED": "Agent removed successfully",
+      "HOURS_SAVED": "Opening hours saved",
+      "HOURS_RESET": "Custom hours removed — inheriting from support",
       "ERROR": "Something went wrong. Please try again."
     }
   }

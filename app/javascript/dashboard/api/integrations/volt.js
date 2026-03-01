@@ -78,6 +78,41 @@ class VoltAPI extends ApiClient {
   deleteTwilioAgent(agentId) {
     return axios.delete(`${this.url}/twilio_agents/${agentId}`);
   }
+
+  // Twilio Opening Hours
+  getOpeningHours() {
+    return axios.get(`${this.url}/twilio_opening_hours`);
+  }
+
+  getQueueHours(queueName) {
+    return axios.get(`${this.url}/twilio_opening_hours/queue/${queueName}`);
+  }
+
+  updateQueueHours(queueName, data) {
+    return axios.put(
+      `${this.url}/twilio_opening_hours/queue/${queueName}`,
+      data
+    );
+  }
+
+  getEditionHours(editionId) {
+    return axios.get(
+      `${this.url}/twilio_opening_hours/edition/${editionId}`
+    );
+  }
+
+  updateEditionHours(editionId, data) {
+    return axios.put(
+      `${this.url}/twilio_opening_hours/edition/${editionId}`,
+      data
+    );
+  }
+
+  deleteEditionHours(editionId) {
+    return axios.delete(
+      `${this.url}/twilio_opening_hours/edition/${editionId}`
+    );
+  }
 }
 
 export default new VoltAPI();

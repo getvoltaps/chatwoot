@@ -28,13 +28,17 @@ class Volt::AssignCallEditionJob < ApplicationJob
 
   def fetch_edition_name(edition_id)
     response = HTTParty.get(
-      "https://api.getvolt.dk/twilio/editions/#{edition_id}",
+      'https://api.getvolt.dk/editions',
       headers: { 'Content-Type' => 'application/json', 'x-api-key' => VOLT_API_KEY },
       timeout: 10
     )
     return nil unless response.success?
 
-    response.parsed_response&.dig('name')
+    editions = response.parsed_response
+    return nil unless editions.is_a?(Array)
+
+    edition = editions.find { |e| e['id'] == edition_id }
+    edition&.dig('name')
   rescue StandardError => e
     Rails.logger.warn "[Volt::AssignCallEditionJob] Edition lookup failed for #{edition_id}: #{e.message}"
     nil

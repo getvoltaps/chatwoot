@@ -14,6 +14,8 @@ import {
   BaseTableCell,
 } from 'dashboard/components-next/table';
 import AddAgentModal from './AddAgentModal.vue';
+import OpeningHoursEditor from './OpeningHoursEditor.vue';
+import ExceptionsEditor from './ExceptionsEditor.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -28,6 +30,14 @@ const showDeleteConfirm = ref(false);
 const selectedAgent = ref(null);
 const addModalRef = ref(null);
 const editModalRef = ref(null);
+
+// Opening hours
+const hoursData = ref(null);
+const hoursSchedule = ref({});
+const hoursExceptions = ref({});
+const isInherited = ref(true);
+const useCustomHours = ref(false);
+const savingHours = ref(false);
 
 const editionId = computed(() => route.params.editionId);
 
@@ -52,14 +62,74 @@ const tableHeaders = computed(() => [
 const fetchEdition = async () => {
   isLoading.value = true;
   try {
-    const { data } = await VoltAPI.getTwilioEdition(editionId.value);
-    edition.value = data;
-    agents.value = data.agents || [];
+    const [editionRes, hoursRes] = await Promise.all([
+      VoltAPI.getTwilioEdition(editionId.value),
+      VoltAPI.getEditionHours(editionId.value),
+    ]);
+    edition.value = editionRes.data;
+    agents.value = editionRes.data.agents || [];
+
+    hoursData.value = hoursRes.data;
+    const hours = hoursRes.data.opening_hours || {};
+    const { exceptions, ...weekdays } = hours;
+    hoursSchedule.value = weekdays;
+    hoursExceptions.value = exceptions || {};
+    isInherited.value = hoursRes.data.inherited_from === 'support';
+    useCustomHours.value = !isInherited.value && hoursRes.data.opening_hours != null;
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   } finally {
     isLoading.value = false;
   }
+};
+
+const enableCustomHours = () => {
+  useCustomHours.value = true;
+};
+
+const resetToInherit = async () => {
+  try {
+    await VoltAPI.deleteEditionHours(editionId.value);
+    useAlert(t('CALLS.API.HOURS_RESET'));
+    // Reload hours
+    const { data } = await VoltAPI.getEditionHours(editionId.value);
+    hoursData.value = data;
+    const hours = data.opening_hours || {};
+    const { exceptions, ...weekdays } = hours;
+    hoursSchedule.value = weekdays;
+    hoursExceptions.value = exceptions || {};
+    isInherited.value = data.inherited_from === 'support';
+    useCustomHours.value = false;
+  } catch {
+    useAlert(t('CALLS.API.ERROR'));
+  }
+};
+
+const saveEditionHours = async () => {
+  savingHours.value = true;
+  try {
+    const openingHours = { ...hoursSchedule.value };
+    if (Object.keys(hoursExceptions.value).length > 0) {
+      openingHours.exceptions = hoursExceptions.value;
+    }
+    await VoltAPI.updateEditionHours(editionId.value, {
+      opening_hours: openingHours,
+    });
+    useAlert(t('CALLS.API.HOURS_SAVED'));
+    isInherited.value = false;
+  } catch {
+    useAlert(t('CALLS.API.ERROR'));
+  } finally {
+    savingHours.value = false;
+  }
+};
+
+const onUpdateSchedule = schedule => {
+  hoursSchedule.value = schedule;
+};
+
+const onUpdateExceptions = exceptions => {
+  hoursExceptions.value = exceptions;
 };
 
 const openAddModal = () => {
@@ -145,8 +215,6 @@ onMounted(fetchEdition);
   <SettingsLayout
     :is-loading="isLoading"
     :loading-message="t('CALLS.LOADING')"
-    :no-records-found="!isLoading && agents.length === 0"
-    :no-records-message="t('CALLS.EDITION_DETAIL.EMPTY')"
   >
     <template #header>
       <BaseSettingsHeader
@@ -189,75 +257,148 @@ onMounted(fetchEdition);
     </template>
 
     <template #body>
-      <BaseTable :headers="tableHeaders" :items="agents">
-        <template #row="{ items }">
-          <BaseTableRow
-            v-for="agent in items"
-            :key="agent.id"
-            :item="agent"
-          >
-            <template #default>
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-12">
-                  {{ agent.agent_name || '—' }}
-                </span>
-              </BaseTableCell>
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-11">
-                  {{ agent.agent_phone }}
-                </span>
-              </BaseTableCell>
-              <BaseTableCell>
-                <span class="text-body-main text-n-slate-11">
-                  {{ agent.priority }}
-                </span>
-              </BaseTableCell>
-              <BaseTableCell>
-                <span
-                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                  :class="
-                    agent.show_caller_id
-                      ? 'bg-n-teal-2 text-n-teal-11'
-                      : 'bg-n-alpha-2 text-n-slate-11'
-                  "
-                >
-                  {{ agent.show_caller_id ? 'Yes' : 'No' }}
-                </span>
-              </BaseTableCell>
-              <BaseTableCell>
-                <span
-                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                  :class="
-                    agent.is_active
-                      ? 'bg-n-teal-2 text-n-teal-11'
-                      : 'bg-n-alpha-2 text-n-slate-11'
-                  "
-                >
-                  {{ agent.is_active ? 'Active' : 'Inactive' }}
-                </span>
-              </BaseTableCell>
-              <BaseTableCell align="end">
-                <div class="flex gap-2 justify-end">
-                  <Button
-                    xs
-                    ghost
-                    slate
-                    icon="i-lucide-pencil"
-                    @click="openEditModal(agent)"
-                  />
-                  <Button
-                    xs
-                    ghost
-                    class="text-n-slate-11 hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-                    icon="i-lucide-trash-2"
-                    @click="openDeleteConfirm(agent)"
-                  />
-                </div>
-              </BaseTableCell>
+      <!-- Opening Hours Section -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-base font-semibold text-n-slate-12">
+              {{ t('CALLS.OPENING_HOURS.TITLE') }}
+            </h3>
+            <p class="text-sm text-n-slate-11">
+              {{ t('CALLS.OPENING_HOURS.DESCRIPTION') }}
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <Button
+              v-if="isInherited && !useCustomHours"
+              size="sm"
+              faded
+              color="blue"
+              :label="t('CALLS.OPENING_HOURS.USE_CUSTOM')"
+              icon="i-lucide-pencil"
+              @click="enableCustomHours"
+            />
+            <template v-if="useCustomHours || (!isInherited && hoursData?.opening_hours)">
+              <Button
+                size="sm"
+                faded
+                slate
+                :label="t('CALLS.OPENING_HOURS.RESET_INHERIT')"
+                icon="i-lucide-undo-2"
+                @click="resetToInherit"
+              />
+              <Button
+                size="sm"
+                :label="t('CALLS.OPENING_HOURS.SAVE')"
+                :is-loading="savingHours"
+                @click="saveEditionHours"
+              />
             </template>
-          </BaseTableRow>
-        </template>
-      </BaseTable>
+          </div>
+        </div>
+
+        <div
+          v-if="isInherited && !useCustomHours"
+          class="text-xs text-n-blue-11 bg-n-blue-2 rounded-lg px-3 py-2 mb-3"
+        >
+          {{ t('CALLS.OPENING_HOURS.INHERITING') }}
+        </div>
+
+        <OpeningHoursEditor
+          :schedule="hoursSchedule"
+          :readonly="isInherited && !useCustomHours"
+          @update="onUpdateSchedule"
+        />
+        <ExceptionsEditor
+          :exceptions="hoursExceptions"
+          :readonly="isInherited && !useCustomHours"
+          @update="onUpdateExceptions"
+        />
+      </div>
+
+      <!-- Agents Section -->
+      <div>
+        <h3 class="text-base font-semibold text-n-slate-12 mb-3">
+          {{ t('CALLS.EDITION_DETAIL.AGENTS_TITLE') }}
+        </h3>
+
+        <BaseTable
+          v-if="agents.length"
+          :headers="tableHeaders"
+          :items="agents"
+        >
+          <template #row="{ items }">
+            <BaseTableRow
+              v-for="agent in items"
+              :key="agent.id"
+              :item="agent"
+            >
+              <template #default>
+                <BaseTableCell>
+                  <span class="text-body-main text-n-slate-12">
+                    {{ agent.agent_name || '—' }}
+                  </span>
+                </BaseTableCell>
+                <BaseTableCell>
+                  <span class="text-body-main text-n-slate-11">
+                    {{ agent.agent_phone }}
+                  </span>
+                </BaseTableCell>
+                <BaseTableCell>
+                  <span class="text-body-main text-n-slate-11">
+                    {{ agent.priority }}
+                  </span>
+                </BaseTableCell>
+                <BaseTableCell>
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      agent.show_caller_id
+                        ? 'bg-n-teal-2 text-n-teal-11'
+                        : 'bg-n-alpha-2 text-n-slate-11'
+                    "
+                  >
+                    {{ agent.show_caller_id ? 'Yes' : 'No' }}
+                  </span>
+                </BaseTableCell>
+                <BaseTableCell>
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      agent.is_active
+                        ? 'bg-n-teal-2 text-n-teal-11'
+                        : 'bg-n-alpha-2 text-n-slate-11'
+                    "
+                  >
+                    {{ agent.is_active ? 'Active' : 'Inactive' }}
+                  </span>
+                </BaseTableCell>
+                <BaseTableCell align="end">
+                  <div class="flex gap-2 justify-end">
+                    <Button
+                      xs
+                      ghost
+                      slate
+                      icon="i-lucide-pencil"
+                      @click="openEditModal(agent)"
+                    />
+                    <Button
+                      xs
+                      ghost
+                      class="text-n-slate-11 hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
+                      icon="i-lucide-trash-2"
+                      @click="openDeleteConfirm(agent)"
+                    />
+                  </div>
+                </BaseTableCell>
+              </template>
+            </BaseTableRow>
+          </template>
+        </BaseTable>
+        <p v-else class="text-sm text-n-slate-11 py-4">
+          {{ t('CALLS.EDITION_DETAIL.EMPTY') }}
+        </p>
+      </div>
     </template>
 
     <woot-modal v-model:show="showAddModal" :on-close="closeAddModal">

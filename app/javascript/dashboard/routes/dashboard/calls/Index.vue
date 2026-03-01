@@ -15,6 +15,8 @@ import {
   BaseTableCell,
 } from 'dashboard/components-next/table';
 import AddAgentModal from './AddAgentModal.vue';
+import OpeningHoursEditor from './OpeningHoursEditor.vue';
+import ExceptionsEditor from './ExceptionsEditor.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -34,6 +36,14 @@ const selectedQueueName = ref(null);
 const selectedAgent = ref(null);
 const addAgentModalRef = ref(null);
 const editAgentModalRef = ref(null);
+
+// Opening hours modal
+const showHoursModal = ref(false);
+const hoursQueueName = ref(null);
+const hoursSchedule = ref({});
+const hoursExceptions = ref({});
+const loadingHours = ref(false);
+const savingHours = ref(false);
 
 const accountId = computed(() => store.getters.getCurrentAccountId);
 
@@ -169,6 +179,58 @@ const deleteGenericAgent = async agentId => {
     await refreshExpandedAgents();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
+  }
+};
+
+const openHoursModal = async queueName => {
+  hoursQueueName.value = queueName;
+  showHoursModal.value = true;
+  loadingHours.value = true;
+  try {
+    const { data } = await VoltAPI.getQueueHours(queueName);
+    const hours = data.opening_hours || {};
+    const { exceptions, ...weekdays } = hours;
+    hoursSchedule.value = weekdays;
+    hoursExceptions.value = exceptions || {};
+  } catch {
+    hoursSchedule.value = {};
+    hoursExceptions.value = {};
+  } finally {
+    loadingHours.value = false;
+  }
+};
+
+const closeHoursModal = () => {
+  showHoursModal.value = false;
+  hoursQueueName.value = null;
+  hoursSchedule.value = {};
+  hoursExceptions.value = {};
+};
+
+const onUpdateSchedule = schedule => {
+  hoursSchedule.value = schedule;
+};
+
+const onUpdateExceptions = exceptions => {
+  hoursExceptions.value = exceptions;
+};
+
+const saveQueueHours = async () => {
+  savingHours.value = true;
+  try {
+    const openingHours = { ...hoursSchedule.value };
+    if (Object.keys(hoursExceptions.value).length > 0) {
+      openingHours.exceptions = hoursExceptions.value;
+    }
+    await VoltAPI.updateQueueHours(hoursQueueName.value, {
+      opening_hours: openingHours,
+    });
+    useAlert(t('CALLS.API.HOURS_SAVED'));
+    closeHoursModal();
+  } catch {
+    useAlert(t('CALLS.API.ERROR'));
+  } finally {
+    savingHours.value = false;
   }
 };
 
@@ -325,6 +387,13 @@ onMounted(fetchQueues);
                       <Button
                         xs
                         faded
+                        slate
+                        icon="i-lucide-clock"
+                        @click.stop="openHoursModal(queue.queue_name)"
+                      />
+                      <Button
+                        xs
+                        faded
                         color="blue"
                         :label="t('CALLS.ADD_AGENT.TITLE')"
                         icon="i-lucide-plus"
@@ -425,6 +494,53 @@ onMounted(fetchQueues);
         @submit="onEditGenericAgent"
         @close="closeEditAgentModal"
       />
+    </woot-modal>
+
+    <woot-modal v-model:show="showHoursModal" :on-close="closeHoursModal">
+      <div class="flex flex-col p-6 gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-n-slate-12 capitalize">
+            {{ hoursQueueName }} — {{ t('CALLS.OPENING_HOURS.TITLE') }}
+          </h2>
+          <p class="text-sm text-n-slate-11 mt-1">
+            {{ t('CALLS.OPENING_HOURS.DESCRIPTION') }}
+          </p>
+          <p
+            v-if="hoursQueueName === 'support'"
+            class="text-xs text-n-amber-11 bg-n-amber-2 rounded-lg px-3 py-2 mt-2"
+          >
+            {{ t('CALLS.OPENING_HOURS.SUPPORT_NOTE') }}
+          </p>
+        </div>
+
+        <div v-if="loadingHours" class="text-sm text-n-slate-11 py-4">
+          Loading...
+        </div>
+        <template v-else>
+          <OpeningHoursEditor
+            :schedule="hoursSchedule"
+            @update="onUpdateSchedule"
+          />
+          <ExceptionsEditor
+            :exceptions="hoursExceptions"
+            @update="onUpdateExceptions"
+          />
+        </template>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <Button
+            faded
+            slate
+            :label="t('CALLS.ADD_AGENT.CANCEL')"
+            @click="closeHoursModal"
+          />
+          <Button
+            :label="t('CALLS.OPENING_HOURS.SAVE')"
+            :is-loading="savingHours"
+            @click="saveQueueHours"
+          />
+        </div>
+      </div>
     </woot-modal>
   </SettingsLayout>
 </template>
