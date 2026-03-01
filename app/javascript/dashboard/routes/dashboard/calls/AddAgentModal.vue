@@ -29,7 +29,7 @@ watch(
       agentName.value = val.agent_name || '';
       priority.value = val.priority ?? 0;
       showCallerId.value = val.show_caller_id === 1;
-      isActive.value = val.is_active === 1;
+      isActive.value = (val.is_active ?? val.agent_active) === 1;
     } else {
       agentPhone.value = '';
       agentName.value = '';
