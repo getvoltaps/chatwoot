@@ -27,10 +27,13 @@ const expandedQueue = ref(null);
 const expandedAgents = ref([]);
 const loadingAgents = ref(false);
 
-// Generic queue agent modal
+// Generic queue agent modals
 const showAddAgentModal = ref(false);
+const showEditAgentModal = ref(false);
 const selectedQueueName = ref(null);
+const selectedAgent = ref(null);
 const addAgentModalRef = ref(null);
+const editAgentModalRef = ref(null);
 
 const accountId = computed(() => store.getters.getCurrentAccountId);
 
@@ -52,9 +55,14 @@ const genericHeaders = computed(() => [
 const fetchQueues = async () => {
   isLoading.value = true;
   try {
-    const { data } = await VoltAPI.getTwilioQueues();
-    editionQueues.value = data.edition_queues || [];
-    genericQueues.value = data.generic_queues || [];
+    const [editionsRes, queuesRes] = await Promise.all([
+      VoltAPI.getTwilioEditions(),
+      VoltAPI.getTwilioQueues(),
+    ]);
+    editionQueues.value = Array.isArray(editionsRes.data)
+      ? editionsRes.data
+      : [];
+    genericQueues.value = queuesRes.data?.generic_queues || [];
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   } finally {
@@ -65,7 +73,7 @@ const fetchQueues = async () => {
 const goToEdition = edition => {
   router.push({
     name: 'calls_edition',
-    params: { accountId: accountId.value, editionId: edition.edition_id },
+    params: { accountId: accountId.value, editionId: edition.id },
   });
 };
 
@@ -100,24 +108,56 @@ const closeAddAgentModal = () => {
 };
 
 const onAddGenericAgent = async agentData => {
+  const queueName = selectedQueueName.value;
   try {
     await VoltAPI.addTwilioAgent({
       ...agentData,
-      queue_name: selectedQueueName.value,
+      queue_name: queueName,
     });
     useAlert(t('CALLS.API.AGENT_ADDED'));
     closeAddAgentModal();
-    fetchQueues();
-    // Refresh expanded queue
-    if (expandedQueue.value === selectedQueueName.value) {
-      const { data } = await VoltAPI.getTwilioAgents({
-        queue: selectedQueueName.value,
-      });
-      expandedAgents.value = Array.isArray(data) ? data : [];
-    }
+    await fetchQueues();
+    // Auto-expand the queue to show the new agent
+    expandedQueue.value = queueName;
+    loadingAgents.value = true;
+    const { data } = await VoltAPI.getTwilioAgents({ queue: queueName });
+    expandedAgents.value = Array.isArray(data) ? data : [];
+    loadingAgents.value = false;
   } catch {
     useAlert(t('CALLS.API.ERROR'));
     addAgentModalRef.value?.resetSubmitting();
+  }
+};
+
+const openEditAgentModal = agent => {
+  selectedAgent.value = agent;
+  showEditAgentModal.value = true;
+};
+
+const closeEditAgentModal = () => {
+  showEditAgentModal.value = false;
+  selectedAgent.value = null;
+};
+
+const refreshExpandedAgents = async () => {
+  if (expandedQueue.value) {
+    const { data } = await VoltAPI.getTwilioAgents({
+      queue: expandedQueue.value,
+    });
+    expandedAgents.value = Array.isArray(data) ? data : [];
+  }
+};
+
+const onEditGenericAgent = async agentData => {
+  try {
+    await VoltAPI.updateTwilioAgent(selectedAgent.value.id, agentData);
+    useAlert(t('CALLS.API.AGENT_UPDATED'));
+    closeEditAgentModal();
+    await fetchQueues();
+    await refreshExpandedAgents();
+  } catch {
+    useAlert(t('CALLS.API.ERROR'));
+    editAgentModalRef.value?.resetSubmitting();
   }
 };
 
@@ -125,13 +165,8 @@ const deleteGenericAgent = async agentId => {
   try {
     await VoltAPI.deleteTwilioAgent(agentId);
     useAlert(t('CALLS.API.AGENT_REMOVED'));
-    fetchQueues();
-    if (expandedQueue.value) {
-      const { data } = await VoltAPI.getTwilioAgents({
-        queue: expandedQueue.value,
-      });
-      expandedAgents.value = Array.isArray(data) ? data : [];
-    }
+    await fetchQueues();
+    await refreshExpandedAgents();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   }
@@ -183,7 +218,7 @@ onMounted(fetchQueues);
           <template #row="{ items }">
             <BaseTableRow
               v-for="edition in items"
-              :key="edition.edition_id"
+              :key="edition.id"
               :item="edition"
               class="cursor-pointer hover:bg-n-alpha-1"
               @click="goToEdition(edition)"
@@ -191,17 +226,17 @@ onMounted(fetchQueues);
               <template #default>
                 <BaseTableCell>
                   <span class="text-body-main text-n-slate-12 font-medium">
-                    {{ edition.edition_name }}
+                    {{ edition.name }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
                   <span class="text-body-main text-n-slate-11">
-                    {{ formatDate(edition.start_date) }}
+                    {{ formatDate(edition.startDate) }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
                   <span class="text-body-main text-n-slate-11">
-                    {{ formatDate(edition.end_date) }}
+                    {{ formatDate(edition.endDate) }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
@@ -346,13 +381,22 @@ onMounted(fetchQueues);
                           {{ agent.is_active ? 'Active' : 'Inactive' }}
                         </span>
                       </div>
-                      <Button
-                        xs
-                        ghost
-                        class="text-n-slate-11 hover:enabled:text-n-ruby-11"
-                        icon="i-lucide-trash-2"
-                        @click="deleteGenericAgent(agent.id)"
-                      />
+                      <div class="flex items-center gap-1">
+                        <Button
+                          xs
+                          ghost
+                          slate
+                          icon="i-lucide-pencil"
+                          @click="openEditAgentModal(agent)"
+                        />
+                        <Button
+                          xs
+                          ghost
+                          class="text-n-slate-11 hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
+                          icon="i-lucide-trash-2"
+                          @click="deleteGenericAgent(agent.id)"
+                        />
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -371,6 +415,15 @@ onMounted(fetchQueues);
         ref="addAgentModalRef"
         @submit="onAddGenericAgent"
         @close="closeAddAgentModal"
+      />
+    </woot-modal>
+
+    <woot-modal v-model:show="showEditAgentModal" :on-close="closeEditAgentModal">
+      <AddAgentModal
+        ref="editAgentModalRef"
+        :agent="selectedAgent"
+        @submit="onEditGenericAgent"
+        @close="closeEditAgentModal"
       />
     </woot-modal>
   </SettingsLayout>
