@@ -9,13 +9,8 @@ Rails.application.config.after_initialize do
 
       attrs = custom_attributes || {}
       return if attrs['volt_edition'].present?
+      return if attrs['call_edition'].blank?
 
-      if attrs['call_queue'].blank?
-        Rails.logger.debug "[volt_call_edition] Conv #{display_id} in inbox 6 but no call_queue yet"
-        return
-      end
-
-      Rails.logger.info "[volt_call_edition] Enqueuing AssignCallEditionJob for conv #{display_id} (call_queue=#{attrs['call_queue'].inspect})"
       Volt::AssignCallEditionJob.perform_later(id)
     end
   end
