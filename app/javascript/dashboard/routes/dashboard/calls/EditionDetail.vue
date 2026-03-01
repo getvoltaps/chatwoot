@@ -14,6 +14,7 @@ import {
   BaseTableCell,
 } from 'dashboard/components-next/table';
 import AddAgentModal from './AddAgentModal.vue';
+import AssignAgentModal from './AssignAgentModal.vue';
 import OpeningHoursEditor from './OpeningHoursEditor.vue';
 import ExceptionsEditor from './ExceptionsEditor.vue';
 
@@ -40,6 +41,8 @@ const useCustomHours = ref(false);
 const savingHours = ref(false);
 
 const editionId = computed(() => route.params.editionId);
+
+const assignedAgentIds = computed(() => agents.value.map(a => a.agent_id));
 
 const editionName = computed(() => edition.value?.name || '');
 
@@ -168,10 +171,13 @@ const closeDeleteConfirm = () => {
   selectedAgent.value = null;
 };
 
-const onAddAgent = async agentData => {
+const onAddAgent = async ({ agent_id, priority }) => {
   try {
-    await VoltAPI.addTwilioEditionAgent(editionId.value, agentData);
-    useAlert(t('CALLS.API.AGENT_ADDED'));
+    await VoltAPI.addAgentAssignment(agent_id, {
+      edition_id: editionId.value,
+      priority,
+    });
+    useAlert(t('CALLS.API.ASSIGNMENT_ADDED'));
     closeAddModal();
     fetchEdition();
   } catch {
@@ -425,8 +431,9 @@ onMounted(fetchEdition);
     </template>
 
     <woot-modal v-model:show="showAddModal" :on-close="closeAddModal">
-      <AddAgentModal
+      <AssignAgentModal
         ref="addModalRef"
+        :exclude-agent-ids="assignedAgentIds"
         @submit="onAddAgent"
         @close="closeAddModal"
       />

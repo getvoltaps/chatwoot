@@ -65,6 +65,12 @@
       "UPDATE": "Update Agent",
       "CANCEL": "Cancel"
     },
+    "ASSIGN_AGENT": {
+      "TITLE": "Assign Agent",
+      "SELECT_LABEL": "Select Agent",
+      "NO_AGENTS": "No agents available",
+      "SUBMIT": "Assign"
+    },
     "DELETE_AGENT": {
       "TITLE": "Remove Agent",
       "MESSAGE": "Are you sure you want to remove this agent from the queue?",

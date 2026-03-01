@@ -15,6 +15,7 @@ import {
   BaseTableCell,
 } from 'dashboard/components-next/table';
 import AddAgentModal from './AddAgentModal.vue';
+import AssignAgentModal from './AssignAgentModal.vue';
 import OpeningHoursEditor from './OpeningHoursEditor.vue';
 import ExceptionsEditor from './ExceptionsEditor.vue';
 
@@ -55,11 +56,26 @@ const editionHeaders = computed(() => [
   '',
 ]);
 
+const GENERIC_QUEUE_NAMES = ['support', 'hr', 'sales'];
+const QUEUE_DISPLAY_NAMES = { support: 'Support', hr: 'HR', sales: 'Sales' };
+
 const genericHeaders = computed(() => [
   t('CALLS.GENERIC_QUEUES.QUEUE_NAME'),
   t('CALLS.GENERIC_QUEUES.AGENTS'),
   '',
 ]);
+
+const mergedGenericQueues = computed(() =>
+  GENERIC_QUEUE_NAMES.map(name => {
+    const fromApi = genericQueues.value.find(q => q.queue_name === name);
+    return {
+      queue_name: name,
+      display_name: QUEUE_DISPLAY_NAMES[name] || name,
+      total_agents: fromApi?.total_agents ?? 0,
+      active_agents: fromApi?.active_agents ?? 0,
+    };
+  })
+);
 
 const expandedAgents = computed(() => {
   if (!expandedQueue.value) return [];
@@ -67,6 +83,8 @@ const expandedAgents = computed(() => {
     (agent.assignments || []).some(a => a.queue_name === expandedQueue.value)
   );
 });
+
+const excludedAgentIds = computed(() => expandedAgents.value.map(a => a.id));
 
 const getQueueAssignment = (agent, queueName) => {
   return (agent.assignments || []).find(a => a.queue_name === queueName);
@@ -130,23 +148,14 @@ const closeAddAgentModal = () => {
   selectedQueueName.value = null;
 };
 
-const onAddGenericAgent = async agentData => {
+const onAddGenericAgent = async ({ agent_id, priority }) => {
   const queueName = selectedQueueName.value;
   try {
-    // Create agent identity
-    const { data: created } = await VoltAPI.addTwilioAgent({
-      agent_phone: agentData.agent_phone,
-      agent_name: agentData.agent_name,
-      show_caller_id: agentData.show_caller_id,
-      is_active: agentData.is_active,
-    });
-    // Then assign to queue
-    await VoltAPI.addAgentAssignment(created.id, {
+    await VoltAPI.addAgentAssignment(agent_id, {
       queue_name: queueName,
-      priority: agentData.priority,
-      is_active: 1,
+      priority,
     });
-    useAlert(t('CALLS.API.AGENT_ADDED'));
+    useAlert(t('CALLS.API.ASSIGNMENT_ADDED'));
     closeAddAgentModal();
     await refreshAgents();
     expandedQueue.value = queueName;
@@ -382,9 +391,8 @@ onMounted(fetchQueues);
         </div>
 
         <BaseTable
-          v-if="genericQueues.length"
           :headers="genericHeaders"
-          :items="genericQueues"
+          :items="mergedGenericQueues"
         >
           <template #row="{ items }">
             <template v-for="queue in items" :key="queue.queue_name">
@@ -395,8 +403,8 @@ onMounted(fetchQueues);
               >
                 <template #default>
                   <BaseTableCell>
-                    <span class="text-body-main text-n-slate-12 font-medium capitalize">
-                      {{ queue.queue_name }}
+                    <span class="text-body-main text-n-slate-12 font-medium">
+                      {{ queue.display_name }}
                     </span>
                   </BaseTableCell>
                   <BaseTableCell>
@@ -492,15 +500,13 @@ onMounted(fetchQueues);
             </template>
           </template>
         </BaseTable>
-        <p v-else class="text-sm text-n-slate-11 py-4">
-          {{ t('CALLS.GENERIC_QUEUES.EMPTY') }}
-        </p>
       </div>
     </template>
 
     <woot-modal v-model:show="showAddAgentModal" :on-close="closeAddAgentModal">
-      <AddAgentModal
+      <AssignAgentModal
         ref="addAgentModalRef"
+        :exclude-agent-ids="excludedAgentIds"
         @submit="onAddGenericAgent"
         @close="closeAddAgentModal"
       />
@@ -518,8 +524,8 @@ onMounted(fetchQueues);
     <woot-modal v-model:show="showHoursModal" :on-close="closeHoursModal">
       <div class="flex flex-col p-6 gap-4">
         <div>
-          <h2 class="text-lg font-semibold text-n-slate-12 capitalize">
-            {{ hoursQueueName }} — {{ t('CALLS.OPENING_HOURS.TITLE') }}
+          <h2 class="text-lg font-semibold text-n-slate-12">
+            {{ QUEUE_DISPLAY_NAMES[hoursQueueName] || hoursQueueName }} — {{ t('CALLS.OPENING_HOURS.TITLE') }}
           </h2>
           <p class="text-sm text-n-slate-11 mt-1">
             {{ t('CALLS.OPENING_HOURS.DESCRIPTION') }}
