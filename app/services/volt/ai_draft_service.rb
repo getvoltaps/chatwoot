@@ -199,7 +199,13 @@ class Volt::AiDraftService
       editions = editions['editions'] if editions.is_a?(Hash) && editions.key?('editions')
       return [] unless editions.is_a?(Array)
 
-      editions.filter_map { |e| e['name'].presence || e['title'].presence }
+      editions.filter_map do |e|
+        name = e['name'].presence || e['title'].presence
+        next unless name
+
+        abbr = e['abbreviation'].presence
+        abbr ? "#{name} (#{abbr})" : name
+      end
     rescue StandardError => e
       Rails.logger.warn "[Volt::AiDraftService] Failed to fetch editions: #{e.message}"
       []

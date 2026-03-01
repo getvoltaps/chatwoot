@@ -38,7 +38,11 @@ class Volt::AssignCallEditionJob < ApplicationJob
     return nil unless editions.is_a?(Array)
 
     edition = editions.find { |e| e['id'] == edition_id }
-    edition&.dig('name')
+    return nil unless edition
+
+    name = edition['name']
+    abbreviation = edition['abbreviation']
+    abbreviation.present? ? "#{name} (#{abbreviation})" : name
   rescue StandardError => e
     Rails.logger.warn "[Volt::AssignCallEditionJob] Edition lookup failed for #{edition_id}: #{e.message}"
     nil
