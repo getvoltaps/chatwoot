@@ -66,13 +66,18 @@ const isAgentActive = agent => {
 const fetchEdition = async () => {
   isLoading.value = true;
   try {
-    const [editionRes, hoursRes] = await Promise.all([
-      VoltAPI.getTwilioEdition(editionId.value),
-      VoltAPI.getEditionHours(editionId.value),
-    ]);
+    const editionRes = await VoltAPI.getTwilioEdition(editionId.value);
     edition.value = editionRes.data;
     agents.value = editionRes.data.agents || [];
+  } catch {
+    useAlert(t('CALLS.API.ERROR'));
+  } finally {
+    isLoading.value = false;
+  }
 
+  // Load hours separately so it doesn't block the page
+  try {
+    const hoursRes = await VoltAPI.getEditionHours(editionId.value);
     hoursData.value = hoursRes.data;
     const hours = hoursRes.data.opening_hours || {};
     const { exceptions, ...weekdays } = hours;
@@ -81,9 +86,7 @@ const fetchEdition = async () => {
     isInherited.value = hoursRes.data.inherited_from === 'support';
     useCustomHours.value = !isInherited.value && hoursRes.data.opening_hours != null;
   } catch {
-    useAlert(t('CALLS.API.ERROR'));
-  } finally {
-    isLoading.value = false;
+    // Hours may not be configured yet — not an error
   }
 };
 
@@ -208,11 +211,9 @@ const onEditAgent = async agentData => {
 };
 
 const onDeleteAgent = async () => {
+  const assignmentId = selectedAgent.value.assignment_id;
   try {
-    await VoltAPI.removeTwilioEditionAgent(
-      editionId.value,
-      selectedAgent.value.assignment_id
-    );
+    await VoltAPI.removeTwilioEditionAgent(editionId.value, assignmentId);
     useAlert(t('CALLS.API.AGENT_REMOVED'));
     closeDeleteConfirm();
     fetchEdition();

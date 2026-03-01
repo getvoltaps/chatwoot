@@ -154,13 +154,14 @@ const closeDeleteConfirm = () => {
 };
 
 const onDeleteAgent = async () => {
+  const agentId = selectedAgent.value.id;
   try {
-    await VoltAPI.deleteTwilioAgent(selectedAgent.value.id);
+    await VoltAPI.deleteTwilioAgent(agentId);
     useAlert(t('CALLS.API.AGENT_DELETED'));
-    closeDeleteConfirm();
-    if (expandedAgentId.value === selectedAgent.value.id) {
+    if (expandedAgentId.value === agentId) {
       expandedAgentId.value = null;
     }
+    closeDeleteConfirm();
     await refreshAgents();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
@@ -283,7 +284,7 @@ onMounted(fetchData);
                 <BaseTableCell>
                   <div class="flex flex-wrap gap-1">
                     <span
-                      v-for="asgn in agent.assignments"
+                      v-for="asgn in (agent.assignments || [])"
                       :key="asgn.id"
                       class="inline-flex items-center rounded-full px-2 py-0.5 text-xs capitalize"
                       :class="
@@ -295,7 +296,7 @@ onMounted(fetchData);
                       {{ assignmentLabel(asgn) }}
                     </span>
                     <span
-                      v-if="!agent.assignments.length"
+                      v-if="!(agent.assignments || []).length"
                       class="text-xs text-n-slate-9"
                     >
                       {{ t('CALLS.AGENTS.ASSIGNMENT.NONE') }}
@@ -353,14 +354,14 @@ onMounted(fetchData);
                   </div>
 
                   <div
-                    v-if="!agent.assignments.length && !showAssignForm"
+                    v-if="!(agent.assignments || []).length && !showAssignForm"
                     class="text-sm text-n-slate-11 py-2"
                   >
                     {{ t('CALLS.AGENTS.ASSIGNMENT.NONE') }}
                   </div>
 
                   <div
-                    v-for="asgn in agent.assignments"
+                    v-for="asgn in (agent.assignments || [])"
                     :key="asgn.id"
                     class="flex items-center justify-between rounded-lg bg-n-solid-1 px-3 py-2"
                   >

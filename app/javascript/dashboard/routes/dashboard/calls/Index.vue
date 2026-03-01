@@ -64,12 +64,12 @@ const genericHeaders = computed(() => [
 const expandedAgents = computed(() => {
   if (!expandedQueue.value) return [];
   return allAgents.value.filter(agent =>
-    agent.assignments.some(a => a.queue_name === expandedQueue.value)
+    (agent.assignments || []).some(a => a.queue_name === expandedQueue.value)
   );
 });
 
 const getQueueAssignment = (agent, queueName) => {
-  return agent.assignments.find(a => a.queue_name === queueName);
+  return (agent.assignments || []).find(a => a.queue_name === queueName);
 };
 
 const fetchQueues = async () => {
