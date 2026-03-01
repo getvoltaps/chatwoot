@@ -102,10 +102,43 @@
         "EMPTY": "No date exceptions configured."
       }
     },
+    "AGENTS": {
+      "HEADER": "Call Agents",
+      "DESCRIPTION": "Manage agents who receive Twilio calls. Agents can be assigned to multiple queues and editions.",
+      "NAME": "Name",
+      "PHONE": "Phone",
+      "CALLER_ID": "Caller ID",
+      "ACTIVE": "Active",
+      "ASSIGNMENTS": "Assignments",
+      "ACTIONS": "Actions",
+      "EMPTY": "No agents found.",
+      "ADD": "Add Agent",
+      "EDIT": "Edit Agent",
+      "DELETE_TITLE": "Delete Agent",
+      "DELETE_MESSAGE": "This will remove the agent and all their queue/edition assignments. This cannot be undone.",
+      "DELETE_CONFIRM": "Delete Agent",
+      "DELETE_CANCEL": "Cancel",
+      "ASSIGNMENT": {
+        "ADD": "Add Assignment",
+        "QUEUE": "Queue",
+        "EDITION": "Edition",
+        "PRIORITY": "Priority",
+        "ACTIVE": "Active",
+        "TYPE": "Assign to",
+        "TYPE_QUEUE": "Generic Queue",
+        "TYPE_EDITION": "Edition",
+        "REMOVE": "Remove",
+        "NONE": "No assignments"
+      }
+    },
     "API": {
       "AGENT_ADDED": "Agent added successfully",
       "AGENT_UPDATED": "Agent updated successfully",
       "AGENT_REMOVED": "Agent removed successfully",
+      "AGENT_DELETED": "Agent deleted successfully",
+      "ASSIGNMENT_ADDED": "Assignment added successfully",
+      "ASSIGNMENT_UPDATED": "Assignment updated successfully",
+      "ASSIGNMENT_REMOVED": "Assignment removed successfully",
       "HOURS_SAVED": "Opening hours saved",
       "HOURS_RESET": "Custom hours removed — inheriting from support",
       "ERROR": "Something went wrong. Please try again."

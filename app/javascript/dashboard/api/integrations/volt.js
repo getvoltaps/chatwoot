@@ -53,9 +53,9 @@ class VoltAPI extends ApiClient {
     );
   }
 
-  removeTwilioEditionAgent(editionId, agentId) {
+  removeTwilioEditionAgent(editionId, assignmentId) {
     return axios.delete(
-      `${this.url}/twilio_editions/${editionId}/agents/${agentId}`
+      `${this.url}/twilio_editions/${editionId}/agents/${assignmentId}`
     );
   }
 
@@ -63,8 +63,13 @@ class VoltAPI extends ApiClient {
     return axios.get(`${this.url}/twilio_queues`);
   }
 
-  getTwilioAgents(params = {}) {
-    return axios.get(`${this.url}/twilio_agents`, { params });
+  // Agent identity CRUD
+  getTwilioAgents() {
+    return axios.get(`${this.url}/twilio_agents`);
+  }
+
+  getTwilioAgent(agentId) {
+    return axios.get(`${this.url}/twilio_agents/${agentId}`);
   }
 
   addTwilioAgent(data) {
@@ -77,6 +82,31 @@ class VoltAPI extends ApiClient {
 
   deleteTwilioAgent(agentId) {
     return axios.delete(`${this.url}/twilio_agents/${agentId}`);
+  }
+
+  // Agent assignment CRUD
+  getAgentAssignments(agentId) {
+    return axios.get(`${this.url}/twilio_agents/${agentId}/assignments`);
+  }
+
+  addAgentAssignment(agentId, data) {
+    return axios.post(
+      `${this.url}/twilio_agents/${agentId}/assignments`,
+      data
+    );
+  }
+
+  updateAgentAssignment(agentId, assignmentId, data) {
+    return axios.put(
+      `${this.url}/twilio_agents/${agentId}/assignments/${assignmentId}`,
+      data
+    );
+  }
+
+  deleteAgentAssignment(agentId, assignmentId) {
+    return axios.delete(
+      `${this.url}/twilio_agents/${agentId}/assignments/${assignmentId}`
+    );
   }
 
   // Twilio Opening Hours

@@ -59,6 +59,10 @@ const tableHeaders = computed(() => [
   t('CALLS.EDITION_DETAIL.ACTIONS'),
 ]);
 
+const isAgentActive = agent => {
+  return agent.agent_active && agent.assignment_active;
+};
+
 const fetchEdition = async () => {
   isLoading.value = true;
   try {
@@ -175,7 +179,25 @@ const onAddAgent = async agentData => {
 
 const onEditAgent = async agentData => {
   try {
-    await VoltAPI.updateTwilioAgent(selectedAgent.value.id, agentData);
+    const agent = selectedAgent.value;
+    // Update agent identity (name, phone, show_caller_id, is_active)
+    const identityData = {
+      agent_phone: agentData.agent_phone,
+      agent_name: agentData.agent_name,
+      show_caller_id: agentData.show_caller_id,
+      is_active: agentData.is_active,
+    };
+    await VoltAPI.updateTwilioAgent(agent.agent_id, identityData);
+
+    // Update assignment fields (priority)
+    if (agentData.priority !== undefined) {
+      await VoltAPI.updateAgentAssignment(
+        agent.agent_id,
+        agent.assignment_id,
+        { priority: agentData.priority }
+      );
+    }
+
     useAlert(t('CALLS.API.AGENT_UPDATED'));
     closeEditModal();
     fetchEdition();
@@ -189,7 +211,7 @@ const onDeleteAgent = async () => {
   try {
     await VoltAPI.removeTwilioEditionAgent(
       editionId.value,
-      selectedAgent.value.id
+      selectedAgent.value.assignment_id
     );
     useAlert(t('CALLS.API.AGENT_REMOVED'));
     closeDeleteConfirm();
@@ -330,7 +352,7 @@ onMounted(fetchEdition);
           <template #row="{ items }">
             <BaseTableRow
               v-for="agent in items"
-              :key="agent.id"
+              :key="agent.assignment_id"
               :item="agent"
             >
               <template #default>
@@ -365,12 +387,12 @@ onMounted(fetchEdition);
                   <span
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
                     :class="
-                      agent.is_active
+                      isAgentActive(agent)
                         ? 'bg-n-teal-2 text-n-teal-11'
                         : 'bg-n-alpha-2 text-n-slate-11'
                     "
                   >
-                    {{ agent.is_active ? 'Active' : 'Inactive' }}
+                    {{ isAgentActive(agent) ? 'Active' : 'Inactive' }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell align="end">

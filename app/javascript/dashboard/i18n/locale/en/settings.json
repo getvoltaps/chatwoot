@@ -384,6 +384,8 @@
     "CAPTAIN_AI": "Captain",
     "VOLT_AI": "Volt AI",
     "CALLS": "Calls",
+    "CALLS_QUEUES": "Queues",
+    "CALLS_AGENTS": "Agents",
     "CONVERSATION_WORKFLOW": "Conversation Workflow"
   },
   "VOLT_AI_SETTINGS": {

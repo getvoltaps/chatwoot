@@ -116,27 +116,49 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
   end
 
   def twilio_remove_edition_agent
-    proxy_delete("/twilio/editions/#{params[:edition_id]}/agents/#{params[:agent_id]}")
+    proxy_delete("/twilio/editions/#{params[:edition_id]}/agents/#{params[:assignment_id]}")
   end
 
   def twilio_queues
     proxy_get('/twilio/queues')
   end
 
+  # Agent identity CRUD
   def twilio_agents
-    proxy_get('/twilio/agents', params.permit(:edition_id, :queue).to_h)
+    proxy_get('/twilio/agents')
+  end
+
+  def twilio_agent
+    proxy_get("/twilio/agents/#{params[:agent_id]}")
   end
 
   def twilio_add_agent
-    proxy_post('/twilio/agents', twilio_agent_params.merge(params.permit(:queue_name).to_h))
+    proxy_post('/twilio/agents', twilio_agent_identity_params)
   end
 
   def twilio_update_agent
-    proxy_put("/twilio/agents/#{params[:agent_id]}", twilio_agent_params)
+    proxy_put("/twilio/agents/#{params[:agent_id]}", twilio_agent_identity_params)
   end
 
   def twilio_delete_agent
     proxy_delete("/twilio/agents/#{params[:agent_id]}")
+  end
+
+  # Agent assignment CRUD
+  def twilio_agent_assignments
+    proxy_get("/twilio/agents/#{params[:agent_id]}/assignments")
+  end
+
+  def twilio_add_assignment
+    proxy_post("/twilio/agents/#{params[:agent_id]}/assignments", twilio_assignment_params)
+  end
+
+  def twilio_update_assignment
+    proxy_put("/twilio/agents/#{params[:agent_id]}/assignments/#{params[:assignment_id]}", twilio_assignment_params)
+  end
+
+  def twilio_delete_assignment
+    proxy_delete("/twilio/agents/#{params[:agent_id]}/assignments/#{params[:assignment_id]}")
   end
 
   # --- Twilio Opening Hours (proxy to api.getvolt.dk) ---
@@ -167,8 +189,17 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
 
   private
 
+  # Full params for edition shortcut (find-or-create + assign)
   def twilio_agent_params
     params.permit(:agent_phone, :agent_name, :priority, :show_caller_id, :is_active).to_h.compact
+  end
+
+  def twilio_agent_identity_params
+    params.permit(:agent_phone, :agent_name, :show_caller_id, :is_active).to_h.compact
+  end
+
+  def twilio_assignment_params
+    params.permit(:queue_name, :edition_id, :priority, :is_active).to_h.compact
   end
 
   def opening_hours_params

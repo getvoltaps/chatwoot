@@ -25,9 +25,8 @@ const store = useStore();
 const isLoading = ref(true);
 const editionQueues = ref([]);
 const genericQueues = ref([]);
+const allAgents = ref([]);
 const expandedQueue = ref(null);
-const expandedAgents = ref([]);
-const loadingAgents = ref(false);
 
 // Generic queue agent modals
 const showAddAgentModal = ref(false);
@@ -62,21 +61,47 @@ const genericHeaders = computed(() => [
   '',
 ]);
 
+const expandedAgents = computed(() => {
+  if (!expandedQueue.value) return [];
+  return allAgents.value.filter(agent =>
+    agent.assignments.some(a => a.queue_name === expandedQueue.value)
+  );
+});
+
+const getQueueAssignment = (agent, queueName) => {
+  return agent.assignments.find(a => a.queue_name === queueName);
+};
+
 const fetchQueues = async () => {
   isLoading.value = true;
   try {
-    const [editionsRes, queuesRes] = await Promise.all([
+    const [editionsRes, queuesRes, agentsRes] = await Promise.all([
       VoltAPI.getTwilioEditions(),
       VoltAPI.getTwilioQueues(),
+      VoltAPI.getTwilioAgents(),
     ]);
     editionQueues.value = Array.isArray(editionsRes.data)
       ? editionsRes.data
       : [];
     genericQueues.value = queuesRes.data?.generic_queues || [];
+    allAgents.value = Array.isArray(agentsRes.data) ? agentsRes.data : [];
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   } finally {
     isLoading.value = false;
+  }
+};
+
+const refreshAgents = async () => {
+  try {
+    const [queuesRes, agentsRes] = await Promise.all([
+      VoltAPI.getTwilioQueues(),
+      VoltAPI.getTwilioAgents(),
+    ]);
+    genericQueues.value = queuesRes.data?.generic_queues || [];
+    allAgents.value = Array.isArray(agentsRes.data) ? agentsRes.data : [];
+  } catch {
+    // silent
   }
 };
 
@@ -87,23 +112,11 @@ const goToEdition = edition => {
   });
 };
 
-const toggleQueueExpand = async queue => {
+const toggleQueueExpand = queue => {
   if (expandedQueue.value === queue.queue_name) {
     expandedQueue.value = null;
-    expandedAgents.value = [];
-    return;
-  }
-  expandedQueue.value = queue.queue_name;
-  loadingAgents.value = true;
-  try {
-    const { data } = await VoltAPI.getTwilioAgents({
-      queue: queue.queue_name,
-    });
-    expandedAgents.value = Array.isArray(data) ? data : [];
-  } catch {
-    expandedAgents.value = [];
-  } finally {
-    loadingAgents.value = false;
+  } else {
+    expandedQueue.value = queue.queue_name;
   }
 };
 
@@ -120,19 +133,23 @@ const closeAddAgentModal = () => {
 const onAddGenericAgent = async agentData => {
   const queueName = selectedQueueName.value;
   try {
-    await VoltAPI.addTwilioAgent({
-      ...agentData,
+    // Create agent identity
+    const { data: created } = await VoltAPI.addTwilioAgent({
+      agent_phone: agentData.agent_phone,
+      agent_name: agentData.agent_name,
+      show_caller_id: agentData.show_caller_id,
+      is_active: agentData.is_active,
+    });
+    // Then assign to queue
+    await VoltAPI.addAgentAssignment(created.id, {
       queue_name: queueName,
+      priority: agentData.priority,
+      is_active: 1,
     });
     useAlert(t('CALLS.API.AGENT_ADDED'));
     closeAddAgentModal();
-    await fetchQueues();
-    // Auto-expand the queue to show the new agent
+    await refreshAgents();
     expandedQueue.value = queueName;
-    loadingAgents.value = true;
-    const { data } = await VoltAPI.getTwilioAgents({ queue: queueName });
-    expandedAgents.value = Array.isArray(data) ? data : [];
-    loadingAgents.value = false;
   } catch {
     useAlert(t('CALLS.API.ERROR'));
     addAgentModalRef.value?.resetSubmitting();
@@ -149,34 +166,39 @@ const closeEditAgentModal = () => {
   selectedAgent.value = null;
 };
 
-const refreshExpandedAgents = async () => {
-  if (expandedQueue.value) {
-    const { data } = await VoltAPI.getTwilioAgents({
-      queue: expandedQueue.value,
-    });
-    expandedAgents.value = Array.isArray(data) ? data : [];
-  }
-};
-
 const onEditGenericAgent = async agentData => {
   try {
-    await VoltAPI.updateTwilioAgent(selectedAgent.value.id, agentData);
+    const agent = selectedAgent.value;
+    // Update agent identity
+    await VoltAPI.updateTwilioAgent(agent.id, {
+      agent_phone: agentData.agent_phone,
+      agent_name: agentData.agent_name,
+      show_caller_id: agentData.show_caller_id,
+      is_active: agentData.is_active,
+    });
+    // Update assignment priority
+    const assignment = getQueueAssignment(agent, expandedQueue.value);
+    if (assignment && agentData.priority !== undefined) {
+      await VoltAPI.updateAgentAssignment(agent.id, assignment.id, {
+        priority: agentData.priority,
+      });
+    }
     useAlert(t('CALLS.API.AGENT_UPDATED'));
     closeEditAgentModal();
-    await fetchQueues();
-    await refreshExpandedAgents();
+    await refreshAgents();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
     editAgentModalRef.value?.resetSubmitting();
   }
 };
 
-const deleteGenericAgent = async agentId => {
+const deleteGenericAgent = async agent => {
+  const assignment = getQueueAssignment(agent, expandedQueue.value);
+  if (!assignment) return;
   try {
-    await VoltAPI.deleteTwilioAgent(agentId);
-    useAlert(t('CALLS.API.AGENT_REMOVED'));
-    await fetchQueues();
-    await refreshExpandedAgents();
+    await VoltAPI.deleteAgentAssignment(agent.id, assignment.id);
+    useAlert(t('CALLS.API.ASSIGNMENT_REMOVED'));
+    await refreshAgents();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   }
@@ -420,10 +442,7 @@ onMounted(fetchQueues);
                 v-if="expandedQueue === queue.queue_name"
               >
                 <td colspan="3" class="px-4 py-3 bg-n-alpha-1">
-                  <div v-if="loadingAgents" class="text-sm text-n-slate-11 py-2">
-                    Loading...
-                  </div>
-                  <div v-else-if="expandedAgents.length === 0" class="text-sm text-n-slate-11 py-2">
+                  <div v-if="expandedAgents.length === 0" class="text-sm text-n-slate-11 py-2">
                     No agents in this queue.
                   </div>
                   <div v-else class="flex flex-col gap-2">
@@ -463,7 +482,7 @@ onMounted(fetchQueues);
                           ghost
                           class="text-n-slate-11 hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
                           icon="i-lucide-trash-2"
-                          @click="deleteGenericAgent(agent.id)"
+                          @click="deleteGenericAgent(agent)"
                         />
                       </div>
                     </div>

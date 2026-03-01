@@ -5,6 +5,7 @@ import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   agent: { type: Object, default: null },
+  identityOnly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['submit', 'close']);
@@ -100,7 +101,7 @@ defineExpose({ resetSubmitting });
         />
       </div>
 
-      <div>
+      <div v-if="!identityOnly">
         <label class="text-sm font-medium text-n-slate-12">
           {{ t('CALLS.ADD_AGENT.PRIORITY.LABEL') }}
         </label>
