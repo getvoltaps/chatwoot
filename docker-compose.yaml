@@ -33,6 +33,7 @@ services:
       - vite
       - mailhog
       - sidekiq
+      - volt-member
     ports:
       - 3000:3000
     env_file: .env
@@ -40,6 +41,7 @@ services:
       - VITE_DEV_SERVER_HOST=vite
       - NODE_ENV=development
       - RAILS_ENV=development
+      - VOLT_SIDECAR_URL=http://volt-member:3100
     entrypoint: docker/entrypoints/rails.sh
     command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
 
@@ -109,6 +111,17 @@ services:
     ports:
       - 1025:1025
       - 8025:8025
+
+  volt-member:
+    build:
+      context: ./volt-member-sidecar
+      dockerfile: Dockerfile
+    image: volt-member-sidecar:development
+    env_file: .env
+    ports:
+      - '3100:3100'
+    restart: unless-stopped
+    shm_size: '256m'
 
 volumes:
   postgres:
