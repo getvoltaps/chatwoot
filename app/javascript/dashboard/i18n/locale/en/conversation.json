@@ -407,6 +407,8 @@
       "TEAMS": "Teams",
       "PAID": "Paid",
       "UNPAID": "Unpaid",
+      "LOADING": "Loading volunteer profile...",
+      "SHIFTS": "Shifts",
       "CUSTOM_FIELDS": "Details",
       "VIEW_PROFILE": "View full profile"
     },

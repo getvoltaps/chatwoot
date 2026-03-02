@@ -94,8 +94,11 @@ const savePeopleId = async () => {
 <template>
   <div class="px-4 py-2 text-n-slate-12 flex flex-col gap-1">
     <!-- Member profile section -->
-    <div v-if="memberLoading" class="flex items-center justify-center py-2">
+    <div v-if="memberLoading" class="flex flex-col items-center justify-center gap-1.5 py-3">
       <Spinner size="24" class="text-n-brand" />
+      <span class="text-xs text-n-slate-11">
+        {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.LOADING') }}
+      </span>
     </div>
     <div v-else-if="memberError" class="text-xs text-n-ruby-11 mb-2">
       {{ memberError }}
@@ -162,6 +165,25 @@ const savePeopleId = async () => {
           >
             {{ team.paid ? t('CONVERSATION_SIDEBAR.VOLT_MEMBER.PAID') : t('CONVERSATION_SIDEBAR.VOLT_MEMBER.UNPAID') }}
           </span>
+        </div>
+      </div>
+      <!-- Shifts -->
+      <div v-if="member.shifts?.length" class="mt-1">
+        <p class="text-xs font-medium text-n-slate-11 mb-1">
+          {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.SHIFTS') }}
+        </p>
+        <div
+          v-for="(shift, idx) in member.shifts"
+          :key="idx"
+          class="py-0.5"
+        >
+          <p class="text-xs text-n-slate-12">
+            {{ shift.shiftName }}
+            <span class="text-n-slate-11">({{ shift.team }})</span>
+          </p>
+          <p class="text-xs text-n-slate-11">
+            {{ shift.time }}
+          </p>
         </div>
       </div>
     </div>
