@@ -24,7 +24,6 @@ import SidebarActionsHeader from 'dashboard/components-next/SidebarActionsHeader
 import LinearIssuesList from 'dashboard/components/widgets/conversation/linear/IssuesList.vue';
 import LinearSetupCTA from 'dashboard/components/widgets/conversation/linear/LinearSetupCTA.vue';
 import VoltCustomerInfo from 'dashboard/components/widgets/conversation/VoltCustomerInfo.vue';
-import VoltMemberProfile from 'dashboard/components/widgets/conversation/VoltMemberProfile.vue';
 import VoltPeopleCulture from 'dashboard/components/widgets/conversation/VoltPeopleCulture.vue';
 
 const props = defineProps({
@@ -48,11 +47,6 @@ const {
 
 const isVoltSectionOpen = computed(() => {
   const val = uiSettings.value.is_volt_customer_info_open;
-  return val === undefined ? true : val;
-});
-
-const isVoltMemberProfileOpen = computed(() => {
-  const val = uiSettings.value.is_volt_member_profile_open;
   return val === undefined ? true : val;
 });
 
@@ -186,21 +180,6 @@ onMounted(() => {
               />
             </AccordionItem>
           </div>
-          <div v-else-if="element.name === 'volt_member_profile'">
-            <AccordionItem
-              :title="
-                $t('CONVERSATION_SIDEBAR.ACCORDION.VOLT_MEMBER_PROFILE')
-              "
-              :is-open="isVoltMemberProfileOpen"
-              compact
-              @toggle="
-                value =>
-                  toggleSidebarUIState('is_volt_member_profile_open', value)
-              "
-            >
-              <VoltMemberProfile :contact-id="contactId" />
-            </AccordionItem>
-          </div>
           <div v-else-if="element.name === 'volt_people_culture'">
             <AccordionItem
               :title="
@@ -213,7 +192,10 @@ onMounted(() => {
                   toggleSidebarUIState('is_volt_people_culture_open', value)
               "
             >
-              <VoltPeopleCulture :conversation-id="conversationId" />
+              <VoltPeopleCulture
+                :conversation-id="conversationId"
+                :contact-id="contactId"
+              />
             </AccordionItem>
           </div>
           <div
