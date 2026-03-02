@@ -371,6 +371,7 @@
       "LINEAR_ISSUES": "Linked Linear Issues",
       "SHOPIFY_ORDERS": "Shopify Orders",
       "VOLT_CUSTOMER_INFO": "Volt Customer Info",
+      "VOLT_MEMBER_PROFILE": "Volunteer Profile",
       "VOLT_PEOPLE_CULTURE": "Volt People&Culture"
     },
     "VOLT": {
@@ -395,6 +396,20 @@
       "NO_SUBJECT_FOUND": "No subjects found",
       "PEOPLE_ID": "People ID",
       "PEOPLE_ID_PLACEHOLDER": "Enter People ID..."
+    },
+    "VOLT_MEMBER": {
+      "ERROR": "Error loading volunteer profile",
+      "NO_EMAIL": "No email address available",
+      "NO_RESULTS": "No volunteer found",
+      "NAME": "Name",
+      "EMAIL": "Email",
+      "PHONE": "Phone",
+      "ADDRESS": "Address",
+      "TEAMS": "Teams",
+      "PAID": "Paid",
+      "UNPAID": "Unpaid",
+      "CUSTOM_FIELDS": "Details",
+      "VIEW_PROFILE": "View full profile"
     },
     "SHOPIFY": {
       "ORDER_ID": "Order #{id}",

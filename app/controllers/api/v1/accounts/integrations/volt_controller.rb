@@ -101,6 +101,27 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
     }, status: :ok
   end
 
+  # --- Volunteer member profile (proxy to volt-member-sidecar) ---
+
+  def member_profile
+    email = params[:email]
+    return render json: { error: 'email param required' }, status: :bad_request if email.blank?
+
+    sidecar_url = ENV.fetch('VOLT_SIDECAR_URL', 'http://localhost:3100')
+    response = HTTParty.get("#{sidecar_url}/member", query: { email: email }, timeout: 30)
+
+    if response.success?
+      render json: response.parsed_response, status: :ok
+    elsif response.code == 404
+      render json: { error: 'Member not found' }, status: :not_found
+    else
+      render json: { error: 'Sidecar error' }, status: :bad_gateway
+    end
+  rescue StandardError => e
+    Rails.logger.error "[VoltController] member_profile failed: #{e.message}"
+    render json: { error: e.message }, status: :bad_gateway
+  end
+
   # --- Twilio Queue Management (proxy to api.getvolt.dk) ---
 
   def twilio_editions

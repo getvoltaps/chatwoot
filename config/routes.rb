@@ -322,6 +322,7 @@ Rails.application.routes.draw do
             resource :volt, controller: 'volt', only: [] do
               collection do
                 get :search
+                get :member_profile
                 get :editions
                 post :ai_draft
                 get :ai_stats

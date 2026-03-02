@@ -18,6 +18,12 @@ class VoltAPI extends ApiClient {
     });
   }
 
+  getMemberProfile(email) {
+    return axios.get(`${this.url}/member_profile`, {
+      params: { email },
+    });
+  }
+
   getEditions() {
     return axios.get(`${this.url}/editions`);
   }

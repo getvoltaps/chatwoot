@@ -1,0 +1,15 @@
+{
+  "name": "volt-member-sidecar",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "express": "^4.18.0",
+    "puppeteer": "^22.0.0",
+    "puppeteer-extra": "^3.3.0",
+    "puppeteer-extra-plugin-stealth": "^2.11.0"
+  }
+}
