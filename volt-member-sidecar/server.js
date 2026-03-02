@@ -10,13 +10,32 @@ const BASE_URL = 'https://volunteer.getvolt.dk';
 const EMAIL = process.env.CREWSTACK_USER;
 const PASSWORD = process.env.CREWSTACK_PASS;
 
-// Simple TTL cache: email -> { data, expiresAt }
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const cache = new Map();
 
-// Shared browser + authenticated page
 let browser = null;
 let authPage = null;
+
+// ─── Concurrency lock (one request at a time) ─────────────────────────────────
+
+let inFlight = false;
+const queue = [];
+
+function withLock(fn) {
+  return new Promise((resolve, reject) => {
+    queue.push({ fn, resolve, reject });
+    processQueue();
+  });
+}
+
+async function processQueue() {
+  if (inFlight || queue.length === 0) return;
+  inFlight = true;
+  const { fn, resolve, reject } = queue.shift();
+  try { resolve(await fn()); }
+  catch (err) { reject(err); }
+  finally { inFlight = false; processQueue(); }
+}
 
 // ─── Browser lifecycle ────────────────────────────────────────────────────────
 
@@ -24,28 +43,30 @@ async function ensureBrowser() {
   if (browser && browser.connected) return;
 
   console.log('[sidecar] Launching browser...');
-  const launchOptions = {
+  browser = await puppeteer.launch({
     headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  };
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-  browser = await puppeteer.launch(launchOptions);
-  authPage = null; // force re-auth
+  });
+  authPage = null;
+
+  browser.on('disconnected', () => {
+    console.log('[sidecar] Browser disconnected, will relaunch on next request');
+    browser = null;
+    authPage = null;
+  });
 }
 
 async function ensureLoggedIn() {
   await ensureBrowser();
 
-  // Test if session is still valid
   if (authPage) {
     try {
-      const testHtml = await authPage.evaluate(async (url) => {
+      const ok = await authPage.evaluate(async (url) => {
         const res = await fetch(`${url}/members/search.json?q=test`);
-        return res.ok ? 'ok' : 'fail';
+        return res.ok;
       }, BASE_URL);
-      if (testHtml === 'ok') return;
+      if (ok) return;
     } catch {
       // session expired or page crashed
     }
@@ -69,7 +90,7 @@ async function ensureLoggedIn() {
   authPage = page;
 }
 
-// ─── Scraping logic (same as volt-member.js) ─────────────────────────────────
+// ─── Find member by email ─────────────────────────────────────────────────────
 
 async function findMemberByEmail(page, email) {
   const results = await page.evaluate(async (baseUrl, email) => {
@@ -84,6 +105,8 @@ async function findMemberByEmail(page, email) {
   return exact || results[0];
 }
 
+// ─── Load member profile page ─────────────────────────────────────────────────
+
 async function loadMemberProfile(page, memberId) {
   const html = await page.evaluate(async (baseUrl, id) => {
     const res = await fetch(`${baseUrl}/members/${id}`);
@@ -96,13 +119,16 @@ async function loadMemberProfile(page, memberId) {
   const name       = $('h1').first().text().trim();
   const memberType = $('h3').first().text().trim();
   const createdAt  = $('h1').closest('div').find('p').first().text().replace('Oprettet', '').trim();
-  const status     = $('i.fa-circle').parent().text().trim() || null;
+
+  // Scope to profile card only to avoid picking up shift status icons
+  const status     = $('h1').closest('div').find('i.fa-circle').parent().text().trim() || null;
   const genderAge  = $('i.fa-female, i.fa-male, i.fa-genderless').parent().text().trim() || null;
   const birthday   = $('i.fa-birthday-cake').parent().text().trim() || null;
   const address    = $('i.fa-home').last().parent().text().trim() || null;
   const phone      = $('i.fa-phone').parent().text().trim() || null;
   const email      = $('i.fa-envelope-o').last().parent().text().trim() || null;
 
+  // Custom member data fields
   const customFields = {};
   $('table.table-striped tr').each((_, row) => {
     const cells = $(row).find('td');
@@ -113,6 +139,7 @@ async function loadMemberProfile(page, memberId) {
     }
   });
 
+  // Ticket info
   const ticket = {};
   $('table.table-condensed').first().find('tr').each((_, row) => {
     const cells = $(row).find('td');
@@ -121,58 +148,95 @@ async function loadMemberProfile(page, memberId) {
     }
   });
 
+  // Teams
   const teams = [];
-  $('h3').filter((_, el) => $(el).text().includes('Hold')).each((_, el) => {
+  $('h3').filter((_, el) => $(el).text().trim() === 'Hold').each((_, el) => {
     $(el).nextAll('ul').first().find('a').each((_, a) => {
       teams.push({ name: $(a).text().trim(), url: $(a).attr('href') });
     });
   });
 
+  // Shifts — parsed from the desktop table under #shifts-table
+  const shifts = [];
+  const shiftsTable = $('#shifts-table').next('.attendance-table-container').find('table.table-striped');
+  if (shiftsTable.length) {
+    shiftsTable.find('tbody tr').each((_, row) => {
+      const cells = $(row).find('td').toArray();
+      const statusIcon = $(cells[1]).find('i');
+      shifts.push({
+        status:       statusIcon.attr('data-original-title')?.trim() || null,
+        statusClass:  statusIcon.attr('class') || null,
+        team:         $(cells[2]).text().trim(),
+        areaName:     $(cells[3]).text().trim(),
+        shiftName:    $(cells[4]).text().trim(),
+        shiftUrl:     $(cells[4]).find('a').attr('href') || null,
+        description:  $(cells[5]).text().trim(),
+        time:         $(cells[6]).text().trim(),
+        meetingPlace: $(cells[7]).text().trim(),
+      });
+    });
+  }
+
   return {
     id: memberId,
     profileUrl: `${BASE_URL}/members/${memberId}`,
     name, memberType, status, createdAt, genderAge, birthday,
-    address, phone, email, customFields, ticket, teams,
+    address, phone, email, customFields, ticket, teams, shifts,
   };
 }
 
-async function getTeamPaymentStatus(page, teamUrl, memberId) {
-  const html = await page.evaluate(async (url) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to load team: ${res.status}`);
-    return res.text();
-  }, teamUrl);
+// ─── Get Betalt status from team page (DataTables — needs real navigation) ────
 
-  const $ = cheerio.load(html);
+async function getTeamPaymentStatus(teamUrl, memberId) {
+  const page = await browser.newPage();
+  try {
+    await page.goto(teamUrl, { waitUntil: 'networkidle2' });
 
-  let targetTable = null;
-  $('table').each((_, table) => {
-    if ($(table).find('th').toArray().some(th => $(th).text().trim() === 'Betalt')) {
-      targetTable = $(table);
+    // Wait for DataTables to populate
+    await page.waitForSelector('#DataTables_Table_1 tbody tr', { timeout: 15000 });
+
+    // Check if member is already visible in the default 20-row view
+    const visibleNow = await page.evaluate((memberId) => {
+      return !!document.querySelector(`#DataTables_Table_1 a[href*="/members/${memberId}"]`);
+    }, memberId);
+
+    if (!visibleNow) {
+      // Expand to 200 rows via the DataTables length dropdown
+      await page.select('select[name="DataTables_Table_1_length"]', '200');
+      await page.waitForFunction(
+        (memberId) => !!document.querySelector(`#DataTables_Table_1 a[href*="/members/${memberId}"]`),
+        { timeout: 10000 },
+        memberId
+      );
     }
-  });
 
-  if (!targetTable) return { paid: null, tooltip: null };
+    // Read Betalt cell from live DOM
+    return await page.evaluate((memberId) => {
+      const table = document.getElementById('DataTables_Table_1');
+      if (!table) return { paid: null, tooltip: null, note: 'table not found' };
 
-  const headers = targetTable.find('th').toArray().map(th => $(th).text().trim());
-  const betaltIdx = headers.indexOf('Betalt');
+      const headers = Array.from(table.querySelectorAll('th')).map(th => th.innerText.trim());
+      const betaltIdx = headers.indexOf('Betalt');
+      if (betaltIdx === -1) return { paid: null, tooltip: null, note: 'Betalt column not found' };
 
-  let betaltResult = { paid: false, tooltip: null };
-  targetTable.find('tbody tr').each((_, row) => {
-    const memberLink = $(row).find(`a[href*="/members/${memberId}"]`);
-    if (memberLink.length) {
-      const cells = $(row).find('td').toArray();
-      const betaltCell = $(cells[betaltIdx]);
-      const icon = betaltCell.find('i');
-      const tooltip = betaltCell.find('[data-original-title]').attr('data-original-title') || null;
-      if (icon.length && icon.hasClass('fa-money')) {
-        betaltResult = { paid: true, tooltip };
-      }
-    }
-  });
+      const row = Array.from(table.querySelectorAll('tbody tr'))
+        .find(r => r.querySelector(`a[href*="/members/${memberId}"]`));
+      if (!row) return { paid: null, tooltip: null, note: 'member row not found' };
 
-  return betaltResult;
+      const cells = Array.from(row.querySelectorAll('td'));
+      const betaltCell = cells[betaltIdx];
+      const icon = betaltCell?.querySelector('i.fa-money');
+      const tooltip = betaltCell?.querySelector('[data-original-title]')
+        ?.getAttribute('data-original-title') || null;
+
+      return { paid: !!icon, tooltip };
+    }, memberId);
+  } finally {
+    await page.close();
+  }
 }
+
+// ─── Main member fetch ────────────────────────────────────────────────────────
 
 async function getMember(email) {
   await ensureLoggedIn();
@@ -182,11 +246,19 @@ async function getMember(email) {
 
   const profile = await loadMemberProfile(authPage, result.value);
 
+  console.log(`[sidecar] Loading payment status for ${profile.teams.length} team(s)...`);
   for (const team of profile.teams) {
     const teamUrl = team.url.startsWith('http') ? team.url : BASE_URL + team.url;
-    const payment = await getTeamPaymentStatus(authPage, teamUrl, result.value);
-    team.paid = payment.paid;
-    team.paymentTooltip = payment.tooltip;
+    console.log(`[sidecar]   → ${team.name} (${teamUrl})`);
+    try {
+      const payment = await getTeamPaymentStatus(teamUrl, result.value);
+      team.paid = payment.paid;
+      team.paymentTooltip = payment.tooltip;
+    } catch (err) {
+      console.error(`[sidecar] Failed to get payment for team ${team.name}:`, err.message);
+      team.paid = null;
+      team.paymentTooltip = null;
+    }
   }
 
   return profile;
@@ -204,14 +276,13 @@ app.get('/member', async (req, res) => {
   const { email } = req.query;
   if (!email) return res.status(400).json({ error: 'email query param required' });
 
-  // Check cache
   const cached = cache.get(email);
   if (cached && cached.expiresAt > Date.now()) {
     return res.json(cached.data);
   }
 
   try {
-    const member = await getMember(email);
+    const member = await withLock(() => getMember(email));
     if (!member) return res.status(404).json({ error: 'Member not found' });
 
     cache.set(email, { data: member, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -220,6 +291,13 @@ app.get('/member', async (req, res) => {
     console.error('[sidecar] Error:', err.message);
     return res.status(500).json({ error: err.message });
   }
+});
+
+app.delete('/member', (req, res) => {
+  const { email } = req.query;
+  if (email) cache.delete(email);
+  else cache.clear();
+  res.json({ ok: true });
 });
 
 app.listen(PORT, () => {
