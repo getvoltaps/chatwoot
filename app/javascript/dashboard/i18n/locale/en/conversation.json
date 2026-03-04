@@ -397,6 +397,9 @@
       "PEOPLE_ID_PLACEHOLDER": "Enter People ID..."
     },
     "VOLT_MEMBER": {
+      "LOAD": "Load volunteer profile",
+      "RETRY": "Retry",
+      "REFRESH": "Refresh",
       "ERROR": "Error loading volunteer profile",
       "NO_EMAIL": "No email address available",
       "NO_RESULTS": "No volunteer found",

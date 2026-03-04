@@ -48,10 +48,13 @@ const fetchMember = async () => {
   }
 };
 
+// Reset when conversation changes so stale data isn't shown
 watch(
   () => email.value,
-  val => { if (val) fetchMember(); },
-  { immediate: true }
+  () => {
+    member.value = null;
+    memberError.value = '';
+  }
 );
 
 const statusColor = computed(() => {
@@ -100,20 +103,35 @@ const savePeopleId = async () => {
         {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.LOADING') }}
       </span>
     </div>
-    <div v-else-if="memberError" class="text-xs text-n-ruby-11 mb-2">
-      {{ memberError }}
+    <div v-else-if="memberError" class="flex flex-col gap-1.5 mb-2">
+      <span class="text-xs text-n-ruby-11">{{ memberError }}</span>
+      <button
+        class="text-xs text-n-brand hover:underline text-left"
+        @click="fetchMember"
+      >
+        {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.RETRY') }}
+      </button>
     </div>
     <div v-else-if="member" class="flex flex-col gap-1.5 mb-3">
-      <!-- Name (linked to profile) -->
-      <a
-        :href="member.profileUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-sm font-medium text-n-brand hover:underline truncate"
-        :title="member.name"
-      >
-        {{ member.name }}
-      </a>
+      <!-- Name (linked to profile) + refresh button -->
+      <div class="flex items-center justify-between gap-1">
+        <a
+          :href="member.profileUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-sm font-medium text-n-brand hover:underline truncate"
+          :title="member.name"
+        >
+          {{ member.name }}
+        </a>
+        <button
+          class="flex-shrink-0 text-n-slate-11 hover:text-n-slate-12"
+          :title="t('CONVERSATION_SIDEBAR.VOLT_MEMBER.REFRESH')"
+          @click="fetchMember"
+        >
+          <span class="i-lucide-refresh-cw size-3.5" />
+        </button>
+      </div>
 
       <!-- Member type + status -->
       <div class="flex items-center gap-1.5 flex-wrap">
@@ -138,10 +156,7 @@ const savePeopleId = async () => {
       <!-- Phone -->
       <div v-if="member.phone" class="flex items-center gap-1.5 text-xs text-n-slate-11">
         <span class="i-lucide-phone size-3.5 flex-shrink-0" />
-        <a
-          :href="`tel:${member.phone}`"
-          class="hover:underline"
-        >
+        <a :href="`tel:${member.phone}`" class="hover:underline">
           {{ member.phone }}
         </a>
       </div>
@@ -172,6 +187,7 @@ const savePeopleId = async () => {
           </span>
         </div>
       </div>
+
       <!-- Shifts -->
       <div v-if="member.shifts?.length" class="mt-1">
         <p class="text-xs font-medium text-n-slate-11 mb-1">
@@ -186,24 +202,31 @@ const savePeopleId = async () => {
             {{ shift.shiftName }}
             <span class="text-n-slate-11">({{ shift.team }})</span>
           </p>
-          <p class="text-xs text-n-slate-11">
-            {{ shift.time }}
-          </p>
+          <p class="text-xs text-n-slate-11">{{ shift.time }}</p>
         </div>
       </div>
     </div>
-    <div v-else-if="email" class="text-xs text-n-slate-11 mb-2">
-      {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.NO_RESULTS') }}
+
+    <!-- Not yet loaded: show load button -->
+    <div v-else class="mb-2">
+      <div v-if="!email" class="text-xs text-n-slate-11">
+        {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.NO_EMAIL') }}
+      </div>
+      <button
+        v-else
+        class="flex items-center gap-1.5 text-xs text-n-brand hover:underline"
+        @click="fetchMember"
+      >
+        <span class="i-lucide-user-search size-3.5" />
+        {{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.LOAD') }}
+      </button>
     </div>
 
     <!-- People ID -->
     <div class="mb-1">
       <label class="text-xs font-medium text-n-slate-11 mb-1 flex items-center gap-1">
         {{ t('CONVERSATION_SIDEBAR.VOLT.PEOPLE_ID') }}
-        <span
-          v-if="showSaved"
-          class="text-n-teal-11 text-xs transition-opacity"
-        >
+        <span v-if="showSaved" class="text-n-teal-11 text-xs transition-opacity">
           Saved
         </span>
       </label>

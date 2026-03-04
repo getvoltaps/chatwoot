@@ -34,7 +34,17 @@ async function processQueue() {
   const { fn, resolve, reject } = queue.shift();
   try { resolve(await fn()); }
   catch (err) { reject(err); }
-  finally { inFlight = false; processQueue(); }
+  finally {
+    inFlight = false;
+    // Close browser after each request — result is cached so Chrome
+    // only runs during the actual scrape, not between requests.
+    if (browser) {
+      try { await browser.close(); } catch { /* ignore */ }
+      browser = null;
+      authPage = null;
+    }
+    processQueue();
+  }
 }
 
 // ─── Browser lifecycle ────────────────────────────────────────────────────────
@@ -49,12 +59,6 @@ async function ensureBrowser() {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
   authPage = null;
-
-  browser.on('disconnected', () => {
-    console.log('[sidecar] Browser disconnected, will relaunch on next request');
-    browser = null;
-    authPage = null;
-  });
 }
 
 async function ensureLoggedIn() {
