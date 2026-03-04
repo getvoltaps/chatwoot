@@ -229,7 +229,12 @@ async function getTeamPaymentStatus(teamUrl, memberId) {
       const tooltip = betaltCell?.querySelector('[data-original-title]')
         ?.getAttribute('data-original-title') || null;
 
-      return { paid: !!icon, tooltip };
+      // fa-money text-navy = paid, fa-money text-danger = flagged/unpaid, no icon = null
+      const paid = icon
+        ? icon.classList.contains('text-navy')
+        : null;
+
+      return { paid, tooltip };
     }, memberId);
   } finally {
     await page.close();

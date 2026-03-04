@@ -160,10 +160,10 @@ const savePeopleId = async () => {
           <span
             v-if="team.paid !== null"
             class="flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded"
-            :class="team.paid ? 'bg-n-teal-3 text-n-teal-11' : 'bg-n-ruby-3 text-n-ruby-11'"
+            :class="team.paid === true ? 'bg-n-teal-3 text-n-teal-11' : 'bg-n-ruby-3 text-n-ruby-11'"
             :title="team.paymentTooltip || ''"
           >
-            {{ team.paid ? t('CONVERSATION_SIDEBAR.VOLT_MEMBER.PAID') : t('CONVERSATION_SIDEBAR.VOLT_MEMBER.UNPAID') }}
+            {{ team.paid === true ? t('CONVERSATION_SIDEBAR.VOLT_MEMBER.PAID') : t('CONVERSATION_SIDEBAR.VOLT_MEMBER.UNPAID') }}
           </span>
         </div>
       </div>
