@@ -407,6 +407,7 @@
       "TEAMS": "Teams",
       "PAID": "Paid",
       "UNPAID": "Unpaid",
+      "NO_PAYMENT_DATA": "No data",
       "LOADING": "Loading volunteer profile...",
       "SHIFTS": "Shifts",
       "CUSTOM_FIELDS": "Details",

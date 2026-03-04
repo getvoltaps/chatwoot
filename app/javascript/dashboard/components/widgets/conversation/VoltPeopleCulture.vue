@@ -158,12 +158,17 @@ const savePeopleId = async () => {
         >
           <span class="text-xs text-n-slate-12 truncate">{{ team.name }}</span>
           <span
-            v-if="team.paid !== null"
             class="flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded"
-            :class="team.paid === true ? 'bg-n-teal-3 text-n-teal-11' : 'bg-n-ruby-3 text-n-ruby-11'"
+            :class="{
+              'bg-n-teal-3 text-n-teal-11': team.paid === true,
+              'bg-n-ruby-3 text-n-ruby-11': team.paid === false,
+              'bg-n-slate-3 text-n-slate-11': team.paid === null,
+            }"
             :title="team.paymentTooltip || ''"
           >
-            {{ team.paid === true ? t('CONVERSATION_SIDEBAR.VOLT_MEMBER.PAID') : t('CONVERSATION_SIDEBAR.VOLT_MEMBER.UNPAID') }}
+            <template v-if="team.paid === true">{{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.PAID') }}</template>
+            <template v-else-if="team.paid === false">{{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.UNPAID') }}</template>
+            <template v-else>{{ t('CONVERSATION_SIDEBAR.VOLT_MEMBER.NO_PAYMENT_DATA') }}</template>
           </span>
         </div>
       </div>
