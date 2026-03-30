@@ -529,6 +529,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'Bulk Mail',
+      label: 'Bulk Mail',
+      icon: 'i-lucide-mails',
+      to: accountScopedRoute('bulk_mail_index'),
+      activeOn: ['bulk_mail_index'],
+    },
+    {
       name: 'Portals',
       label: t('SIDEBAR.HELP_CENTER.TITLE'),
       icon: 'i-lucide-library-big',
