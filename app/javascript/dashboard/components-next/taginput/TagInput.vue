@@ -173,7 +173,7 @@ const handleFocus = () => {
 };
 
 const handleKeydown = event => {
-  if (event.key === ',') {
+  if (event.key === ',' || event.key === ';') {
     event.preventDefault();
     addTag();
   }

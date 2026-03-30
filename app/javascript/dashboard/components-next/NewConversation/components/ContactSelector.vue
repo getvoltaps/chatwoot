@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { INPUT_TYPES } from 'dashboard/components-next/taginput/helper/tagInputHelper.js';
 
@@ -81,7 +81,14 @@ const contactsList = computed(() => {
     }));
 });
 
-const isMultiMode = computed(() => props.selectedContacts.length > 0);
+// All chips to display (combines single selectedContact + selectedContacts)
+const allSelectedContacts = computed(() => {
+  if (props.selectedContacts.length > 0) return props.selectedContacts;
+  if (props.selectedContact) return [props.selectedContact];
+  return [];
+});
+
+const hasAnyContact = computed(() => allSelectedContacts.value.length > 0);
 
 const getContactLabel = contact => {
   const { name, email = '', phoneNumber = '' } = contact || {};
@@ -90,10 +97,6 @@ const getContactLabel = contact => {
   return name || '';
 };
 
-const selectedContactLabel = computed(() => {
-  return getContactLabel(props.selectedContact);
-});
-
 const errorClass = computed(() => {
   return props.hasErrors
     ? '[&_input]:placeholder:!text-n-ruby-9 [&_input]:dark:placeholder:!text-n-ruby-9'
@@ -101,24 +104,50 @@ const errorClass = computed(() => {
 });
 
 const handleInput = value => {
-  // Update input type based on whether input starts with '+'
-  // If it does, set input type to 'tel'
-  // Otherwise, set input type to 'email'
   inputType.value = value.startsWith('+') ? INPUT_TYPES.TEL : INPUT_TYPES.EMAIL;
   emit('searchContacts', value);
 };
 
-const handleMultiAdd = event => {
+const handleAdd = event => {
   emit('setSelectedContact', event);
-  // Reset the TagInput by changing its key so it remounts fresh
+  // Reset the TagInput so it's ready for the next entry
   tagInputKey.value += 1;
+};
+
+const handleRemoveChip = contact => {
+  if (props.selectedContacts.length > 0) {
+    emit('removeContact', contact.id);
+  } else {
+    emit('clearSelectedContact');
+  }
+};
+
+const handlePaste = event => {
+  const pasted = event.clipboardData?.getData('text') || '';
+  // Split on comma or semicolon
+  const emails = pasted
+    .split(/[,;]+/)
+    .map(e => e.trim())
+    .filter(e => e.length > 0);
+
+  if (emails.length > 1) {
+    event.preventDefault();
+    emails.forEach(email => {
+      emit('setSelectedContact', { value: email, action: 'create' });
+    });
+    nextTick(() => {
+      tagInputKey.value += 1;
+    });
+  }
 };
 </script>
 
 <template>
   <div class="relative flex-1 px-4 py-3 overflow-y-visible">
-    <div class="flex items-baseline w-full gap-3 min-h-7">
-      <label class="text-sm font-medium text-n-slate-11 whitespace-nowrap">
+    <div class="flex items-start w-full gap-3 min-h-7">
+      <label
+        class="text-sm font-medium text-n-slate-11 whitespace-nowrap mt-1"
+      >
         {{ t(`${i18nPrefix}.LABEL`) }}
       </label>
 
@@ -130,83 +159,52 @@ const handleMultiAdd = event => {
           {{ t(`${i18nPrefix}.CONTACT_CREATING`) }}
         </span>
       </div>
-      <template v-else-if="isMultiMode">
-        <div class="flex flex-wrap items-center gap-1.5 flex-1">
-          <div
-            v-for="contact in selectedContacts"
-            :key="contact.id"
-            class="flex items-center gap-1.5 rounded-md bg-n-alpha-2 min-h-7 min-w-0 ltr:pl-3 rtl:pr-3 ltr:pr-1 rtl:pl-1"
-          >
-            <span class="text-sm truncate text-n-slate-12">
-              {{ getContactLabel(contact) }}
-            </span>
-            <Button
-              variant="ghost"
-              icon="i-lucide-x"
-              color="slate"
-              size="xs"
-              @click="emit('removeContact', contact.id)"
-            />
-          </div>
+      <div v-else class="flex flex-wrap items-center gap-1.5 flex-1">
+        <div
+          v-for="contact in allSelectedContacts"
+          :key="contact.id"
+          class="flex items-center gap-1.5 rounded-md bg-n-alpha-2 min-h-7 min-w-0 ltr:pl-3 rtl:pr-3 ltr:pr-1 rtl:pl-1"
+        >
+          <span class="text-sm truncate text-n-slate-12">
+            {{ getContactLabel(contact) }}
+          </span>
+          <Button
+            v-if="!contactId"
+            variant="ghost"
+            icon="i-lucide-x"
+            color="slate"
+            size="xs"
+            @click="handleRemoveChip(contact)"
+          />
+        </div>
+        <div
+          class="flex-1 min-w-[200px]"
+          @paste="handlePaste"
+        >
           <TagInput
             :key="tagInputKey"
-            :placeholder="t(`${i18nPrefix}.TAG_INPUT_PLACEHOLDER`)"
+            :placeholder="
+              hasAnyContact
+                ? 'Add another recipient...'
+                : t(`${i18nPrefix}.TAG_INPUT_PLACEHOLDER`)
+            "
             mode="single"
             :menu-items="contactsList"
             :show-dropdown="showContactsDropdown"
             :is-loading="isLoading"
             allow-create
             :type="inputType"
-            class="flex-1 min-h-7 min-w-[200px]"
+            class="flex-1 min-h-7"
+            :class="hasAnyContact ? '' : errorClass"
             :auto-open-dropdown="false"
             focus-on-mount
             @input="handleInput"
             @on-click-outside="emit('updateDropdown', 'contacts', false)"
-            @add="handleMultiAdd"
+            @add="handleAdd"
             @remove="() => {}"
           />
         </div>
-      </template>
-      <div
-        v-else-if="selectedContact"
-        class="flex items-center gap-1.5 rounded-md bg-n-alpha-2 min-h-7 min-w-0"
-        :class="!contactId ? 'ltr:pl-3 rtl:pr-3 ltr:pr-1 rtl:pl-1' : 'px-3'"
-      >
-        <span class="text-sm truncate text-n-slate-12">
-          {{
-            isCreatingContact
-              ? t(`${i18nPrefix}.CONTACT_CREATING`)
-              : selectedContactLabel
-          }}
-        </span>
-        <Button
-          v-if="!contactId"
-          variant="ghost"
-          icon="i-lucide-x"
-          color="slate"
-          :disabled="contactId"
-          size="xs"
-          @click="emit('clearSelectedContact')"
-        />
       </div>
-      <TagInput
-        v-else
-        :placeholder="t(`${i18nPrefix}.TAG_INPUT_PLACEHOLDER`)"
-        mode="single"
-        :menu-items="contactsList"
-        :show-dropdown="showContactsDropdown"
-        :is-loading="isLoading"
-        :disabled="contactableInboxesList?.length > 0 && showInboxesDropdown"
-        allow-create
-        :type="inputType"
-        class="flex-1 min-h-7"
-        :class="errorClass"
-        focus-on-mount
-        @input="handleInput"
-        @on-click-outside="emit('updateDropdown', 'contacts', false)"
-        @add="emit('setSelectedContact', $event)"
-        @remove="emit('clearSelectedContact')"
-      />
     </div>
   </div>
 </template>
