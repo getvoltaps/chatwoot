@@ -1,41 +1,49 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
-import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
-import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import {
   createNewContact,
   searchContacts,
-  fetchContactableInboxes,
-  mergeInboxDetails,
-  prepareAttachmentPayload,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
+import { appendSignature } from 'dashboard/helper/editorHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 
 const store = useStore();
-const { t } = useI18n();
 
 const inboxesList = useMapGetter('inboxes/getInboxes');
-const currentUser = useMapGetter('getCurrentUser');
+const messageSignature = useMapGetter('getMessageSignature');
 
 const emailInput = ref('');
 const parsedEmails = ref([]);
 const selectedInbox = ref(null);
 const subject = ref('');
 const messageContent = ref('');
+const attachedFiles = ref([]);
 const isSending = ref(false);
 const sendProgress = ref(0);
 const sendTotal = ref(0);
 const sendErrors = ref([]);
 const showInboxDropdown = ref(false);
+const fileInputRef = ref(null);
 
 const emailInboxes = computed(() => {
   return inboxesList.value.filter(
     inbox => inbox.channel_type === 'Channel::Email'
   );
+});
+
+// Append signature when inbox is selected
+watch(selectedInbox, inbox => {
+  if (inbox && messageSignature.value && !messageContent.value) {
+    messageContent.value = appendSignature(
+      '',
+      messageSignature.value,
+      'Channel::Email'
+    );
+  }
 });
 
 const parseEmails = () => {
@@ -45,7 +53,6 @@ const parseEmails = () => {
     .map(e => e.trim().toLowerCase())
     .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
 
-  // Deduplicate
   const unique = [...new Set(emails)];
   parsedEmails.value = unique;
 };
@@ -72,6 +79,23 @@ const canSend = computed(() => {
 const selectInbox = inbox => {
   selectedInbox.value = inbox;
   showInboxDropdown.value = false;
+};
+
+const onFileSelect = event => {
+  const files = Array.from(event.target.files || []);
+  attachedFiles.value = [...attachedFiles.value, ...files];
+  // Reset input so same file can be re-selected
+  event.target.value = '';
+};
+
+const removeFile = index => {
+  attachedFiles.value.splice(index, 1);
+};
+
+const formatFileSize = bytes => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const snoozeConversation = async conversationId => {
@@ -117,7 +141,11 @@ const sendBulkMail = async () => {
         'additional_attributes[mail_subject]',
         subject.value
       );
-      payload.append('assignee_id', currentUser.value.id);
+
+      // Attach files
+      attachedFiles.value.forEach(file => {
+        payload.append('message[attachments][]', file);
+      });
 
       const { data } = await ConversationApi.create(payload);
 
@@ -261,7 +289,9 @@ onMounted(() => {
               >
                 Select an email inbox...
               </span>
-              <span class="ml-auto i-lucide-chevron-down size-4 text-n-slate-9" />
+              <span
+                class="ml-auto i-lucide-chevron-down size-4 text-n-slate-9"
+              />
             </button>
             <div
               v-if="showInboxDropdown"
@@ -312,12 +342,55 @@ onMounted(() => {
           />
         </div>
 
+        <!-- Attachments -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <input
+              ref="fileInputRef"
+              type="file"
+              multiple
+              class="hidden"
+              @change="onFileSelect"
+            />
+            <Button
+              variant="ghost"
+              color="slate"
+              size="sm"
+              label="Attach files"
+              icon="i-lucide-paperclip"
+              @click="fileInputRef?.click()"
+            />
+          </div>
+          <div
+            v-if="attachedFiles.length"
+            class="flex flex-wrap gap-2"
+          >
+            <div
+              v-for="(file, index) in attachedFiles"
+              :key="index"
+              class="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-n-alpha-2 text-n-slate-12"
+            >
+              <span class="i-lucide-file size-3 text-n-slate-9" />
+              <span class="truncate max-w-[150px]">{{ file.name }}</span>
+              <span class="text-n-slate-9">{{
+                formatFileSize(file.size)
+              }}</span>
+              <span
+                class="cursor-pointer i-lucide-x size-3 text-n-slate-9 hover:text-n-slate-12"
+                @click="removeFile(index)"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Progress bar -->
         <div
           v-if="isSending"
           class="flex flex-col gap-2"
         >
-          <div class="flex items-center justify-between text-xs text-n-slate-11">
+          <div
+            class="flex items-center justify-between text-xs text-n-slate-11"
+          >
             <span>Sending...</span>
             <span>{{ sendProgress }} / {{ sendTotal }}</span>
           </div>
