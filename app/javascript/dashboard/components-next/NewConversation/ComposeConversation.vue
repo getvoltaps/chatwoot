@@ -53,6 +53,7 @@ const viewInModal = computed(() => props.isModal || isSmallScreen.value);
 
 const contacts = ref([]);
 const selectedContact = ref(null);
+const selectedContacts = ref([]);
 const targetInbox = ref(null);
 const isCreatingContact = ref(false);
 const isFetchingInboxes = ref(false);
@@ -137,6 +138,42 @@ const handleSelectedContact = async ({ value, action, ...rest }) => {
   } else {
     contact = rest;
   }
+
+  // If we already have a selected contact or contacts, add to multi-contact list
+  if (selectedContact.value || selectedContacts.value.length > 0) {
+    // Move existing single contact to multi list if needed
+    if (selectedContact.value && selectedContacts.value.length === 0) {
+      selectedContacts.value = [selectedContact.value];
+      selectedContact.value = null;
+    }
+    // Avoid duplicates
+    if (!selectedContacts.value.find(c => c.id === contact.id)) {
+      selectedContacts.value = [...selectedContacts.value, contact];
+    }
+    // Fetch inboxes for new contact and find common email inboxes
+    if (contact?.id) {
+      isFetchingInboxes.value = true;
+      try {
+        const contactableInboxes = await fetchContactableInboxes(contact.id);
+        const merged = mergeInboxDetails(contactableInboxes, inboxesList.value);
+        // Store inboxes on the contact in the list
+        const idx = selectedContacts.value.findIndex(c => c.id === contact.id);
+        if (idx !== -1) {
+          selectedContacts.value[idx] = {
+            ...selectedContacts.value[idx],
+            contactInboxes: merged,
+          };
+          selectedContacts.value = [...selectedContacts.value];
+        }
+      } catch (error) {
+        // ignore
+      } finally {
+        isFetchingInboxes.value = false;
+      }
+    }
+    return;
+  }
+
   selectedContact.value = contact;
   if (contact?.id) {
     isFetchingInboxes.value = true;
@@ -155,6 +192,21 @@ const handleSelectedContact = async ({ value, action, ...rest }) => {
   }
 };
 
+const handleRemoveContact = contactId => {
+  selectedContacts.value = selectedContacts.value.filter(
+    c => c.id !== contactId
+  );
+  if (selectedContacts.value.length === 1) {
+    // Go back to single contact mode
+    selectedContact.value = selectedContacts.value[0];
+    selectedContacts.value = [];
+  } else if (selectedContacts.value.length === 0) {
+    selectedContact.value = null;
+    targetInbox.value = null;
+    clearFormState();
+  }
+};
+
 const handleTargetInbox = inbox => {
   targetInbox.value = inbox;
   if (!inbox) clearFormState();
@@ -163,6 +215,7 @@ const handleTargetInbox = inbox => {
 
 const clearSelectedContact = () => {
   selectedContact.value = null;
+  selectedContacts.value = [];
   targetInbox.value = null;
   clearFormState();
 };
@@ -173,6 +226,7 @@ const closeCompose = () => {
     // If contactId is passed as prop
     // Then don't allow to remove the selected contact
     selectedContact.value = null;
+    selectedContacts.value = [];
   }
   targetInbox.value = null;
   resetContacts();
@@ -186,6 +240,40 @@ const discardCompose = () => {
 };
 
 const createConversation = async ({ payload, isFromWhatsApp }) => {
+  // Multi-contact mode: create a conversation for each contact
+  if (selectedContacts.value.length > 1) {
+    const contactCount = selectedContacts.value.length;
+    try {
+      for (const contact of selectedContacts.value) {
+        const contactPayload = {
+          ...payload,
+          contactId: Number(contact.id),
+          sourceId: contact.contactInboxes?.find(
+            inbox => inbox.id === payload.inboxId
+          )?.sourceId || payload.sourceId,
+        };
+        await store.dispatch('contactConversations/create', {
+          params: contactPayload,
+          isFromWhatsApp,
+        });
+      }
+      discardCompose();
+      useAlert(
+        t('COMPOSE_NEW_CONVERSATION.FORM.MULTI_SUCCESS_MESSAGE', {
+          count: contactCount,
+        })
+      );
+      return true;
+    } catch (error) {
+      useAlert(
+        error instanceof ExceptionWithMessage
+          ? error.data
+          : t('COMPOSE_NEW_CONVERSATION.FORM.ERROR_MESSAGE')
+      );
+      return false;
+    }
+  }
+
   try {
     const data = await store.dispatch('contactConversations/create', {
       params: payload,
@@ -301,6 +389,7 @@ useKeyboardEvents(keyboardEvents);
         :is-loading="isSearching"
         :current-user="currentUser"
         :selected-contact="selectedContact"
+        :selected-contacts="selectedContacts"
         :target-inbox="targetInbox"
         :is-creating-contact="isCreatingContact"
         :is-fetching-inboxes="isFetchingInboxes"
@@ -314,6 +403,7 @@ useKeyboardEvents(keyboardEvents);
         @update-selected-contact="handleSelectedContact"
         @update-target-inbox="handleTargetInbox"
         @clear-selected-contact="clearSelectedContact"
+        @remove-contact="handleRemoveContact"
         @create-conversation="createConversation"
         @discard="discardCompose"
       />

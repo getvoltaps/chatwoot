@@ -15,6 +15,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  selectedContacts: {
+    type: Array,
+    default: () => [],
+  },
   showContactsDropdown: {
     type: Boolean,
     required: true,
@@ -49,6 +53,7 @@ const emit = defineEmits([
   'searchContacts',
   'setSelectedContact',
   'clearSelectedContact',
+  'removeContact',
   'updateDropdown',
 ]);
 
@@ -56,29 +61,37 @@ const i18nPrefix = 'COMPOSE_NEW_CONVERSATION.FORM.CONTACT_SELECTOR';
 const { t } = useI18n();
 
 const inputType = ref(INPUT_TYPES.EMAIL);
+const tagInputKey = ref(0);
 
 const contactsList = computed(() => {
-  return props.contacts?.map(({ name, id, thumbnail, email, ...rest }) => ({
-    id,
-    label: email ? `${name} (${email})` : name,
-    value: id,
-    thumbnail: { name, src: thumbnail },
-    ...rest,
-    name,
-    email,
-    action: 'contact',
-  }));
+  const selectedIds = new Set(props.selectedContacts.map(c => c.id));
+  if (props.selectedContact) selectedIds.add(props.selectedContact.id);
+
+  return props.contacts
+    ?.filter(({ id }) => !selectedIds.has(id))
+    .map(({ name, id, thumbnail, email, ...rest }) => ({
+      id,
+      label: email ? `${name} (${email})` : name,
+      value: id,
+      thumbnail: { name, src: thumbnail },
+      ...rest,
+      name,
+      email,
+      action: 'contact',
+    }));
 });
 
-const selectedContactLabel = computed(() => {
-  const { name, email = '', phoneNumber = '' } = props.selectedContact || {};
-  if (email) {
-    return `${name} (${email})`;
-  }
-  if (phoneNumber) {
-    return `${name} (${phoneNumber})`;
-  }
+const isMultiMode = computed(() => props.selectedContacts.length > 0);
+
+const getContactLabel = contact => {
+  const { name, email = '', phoneNumber = '' } = contact || {};
+  if (email) return `${name} (${email})`;
+  if (phoneNumber) return `${name} (${phoneNumber})`;
   return name || '';
+};
+
+const selectedContactLabel = computed(() => {
+  return getContactLabel(props.selectedContact);
 });
 
 const errorClass = computed(() => {
@@ -93,6 +106,12 @@ const handleInput = value => {
   // Otherwise, set input type to 'email'
   inputType.value = value.startsWith('+') ? INPUT_TYPES.TEL : INPUT_TYPES.EMAIL;
   emit('searchContacts', value);
+};
+
+const handleMultiAdd = event => {
+  emit('setSelectedContact', event);
+  // Reset the TagInput by changing its key so it remounts fresh
+  tagInputKey.value += 1;
 };
 </script>
 
@@ -111,6 +130,43 @@ const handleInput = value => {
           {{ t(`${i18nPrefix}.CONTACT_CREATING`) }}
         </span>
       </div>
+      <template v-else-if="isMultiMode">
+        <div class="flex flex-wrap items-center gap-1.5 flex-1">
+          <div
+            v-for="contact in selectedContacts"
+            :key="contact.id"
+            class="flex items-center gap-1.5 rounded-md bg-n-alpha-2 min-h-7 min-w-0 ltr:pl-3 rtl:pr-3 ltr:pr-1 rtl:pl-1"
+          >
+            <span class="text-sm truncate text-n-slate-12">
+              {{ getContactLabel(contact) }}
+            </span>
+            <Button
+              variant="ghost"
+              icon="i-lucide-x"
+              color="slate"
+              size="xs"
+              @click="emit('removeContact', contact.id)"
+            />
+          </div>
+          <TagInput
+            :key="tagInputKey"
+            :placeholder="t(`${i18nPrefix}.TAG_INPUT_PLACEHOLDER`)"
+            mode="single"
+            :menu-items="contactsList"
+            :show-dropdown="showContactsDropdown"
+            :is-loading="isLoading"
+            allow-create
+            :type="inputType"
+            class="flex-1 min-h-7 min-w-[200px]"
+            :auto-open-dropdown="false"
+            focus-on-mount
+            @input="handleInput"
+            @on-click-outside="emit('updateDropdown', 'contacts', false)"
+            @add="handleMultiAdd"
+            @remove="() => {}"
+          />
+        </div>
+      </template>
       <div
         v-else-if="selectedContact"
         class="flex items-center gap-1.5 rounded-md bg-n-alpha-2 min-h-7 min-w-0"

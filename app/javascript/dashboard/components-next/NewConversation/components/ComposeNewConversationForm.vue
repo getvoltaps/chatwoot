@@ -27,6 +27,7 @@ const props = defineProps({
   contacts: { type: Array, default: () => [] },
   contactId: { type: String, default: null },
   selectedContact: { type: Object, default: null },
+  selectedContacts: { type: Array, default: () => [] },
   targetInbox: { type: Object, default: null },
   currentUser: { type: Object, default: null },
   isCreatingContact: { type: Boolean, default: false },
@@ -46,6 +47,7 @@ const emit = defineEmits([
   'updateSelectedContact',
   'updateTargetInbox',
   'clearSelectedContact',
+  'removeContact',
   'createConversation',
 ]);
 
@@ -97,6 +99,10 @@ const effectiveChannelType = computed(() =>
   getEffectiveChannelType(inboxChannelType.value, inboxMedium.value)
 );
 
+const hasSelectedContact = computed(
+  () => props.selectedContact || props.selectedContacts.length > 0
+);
+
 const validationRules = computed(() => ({
   selectedContact: { required },
   targetInbox: { required },
@@ -105,7 +111,7 @@ const validationRules = computed(() => ({
 }));
 
 const v$ = useVuelidate(validationRules, {
-  selectedContact: computed(() => props.selectedContact),
+  selectedContact: hasSelectedContact,
   targetInbox: computed(() => props.targetInbox),
   message: computed(() => state.message),
   subject: computed(() => state.subject),
@@ -135,12 +141,20 @@ const newMessagePayload = () => {
 };
 
 const contactableInboxesList = computed(() => {
+  // In multi-contact mode, show the first contact's inboxes (backend will
+  // create ContactInbox records for any contact that doesn't have one yet)
+  if (props.selectedContacts.length > 1) {
+    const first = props.selectedContacts.find(c => c.contactInboxes?.length);
+    return buildContactableInboxesList(first?.contactInboxes);
+  }
   return buildContactableInboxesList(props.selectedContact?.contactInboxes);
 });
 
 const showNoInboxAlert = computed(() => {
+  const hasContact =
+    props.selectedContact || props.selectedContacts.length > 0;
   return (
-    props.selectedContact &&
+    hasContact &&
     contactableInboxesList.value.length === 0 &&
     !props.contactsUiFlags.isFetchingInboxes &&
     !props.isFetchingInboxes
@@ -348,6 +362,7 @@ const shouldShowMessageEditor = computed(() => {
       <ContactSelector
         :contacts="contacts"
         :selected-contact="selectedContact"
+        :selected-contacts="selectedContacts"
         :show-contacts-dropdown="showContactsDropdown"
         :is-loading="isLoading"
         :is-creating-contact="isCreatingContact"
@@ -358,6 +373,7 @@ const shouldShowMessageEditor = computed(() => {
         @search-contacts="handleContactSearch"
         @set-selected-contact="setSelectedContact"
         @clear-selected-contact="clearSelectedContact"
+        @remove-contact="emit('removeContact', $event)"
         @update-dropdown="handleDropdownUpdate"
       />
       <InboxEmptyState v-if="showNoInboxAlert" />
