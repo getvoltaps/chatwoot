@@ -25,6 +25,7 @@ class Volt::AiDraftJob < ApplicationJob
       conversation_id: conversation.display_id,
       context: result[:context],
       draft_reply: result[:draft_reply],
+      translated: result[:translated] || false,
       account_id: account.id,
       auto_filled: auto_filled
     }

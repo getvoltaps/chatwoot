@@ -12,10 +12,10 @@ const getters = {
 };
 
 const mutations = {
-  SET_DRAFT($state, { conversationId, context, draftReply }) {
+  SET_DRAFT($state, { conversationId, context, draftReply, translated }) {
     $state.drafts = {
       ...$state.drafts,
-      [conversationId]: { context, draftReply },
+      [conversationId]: { context, draftReply, translated },
     };
     const { [conversationId]: _, ...rest } = $state.loading;
     $state.loading = rest;
@@ -32,8 +32,8 @@ const mutations = {
 };
 
 const actions = {
-  setDraft({ commit }, { conversation_id: conversationId, context, draft_reply: draftReply }) {
-    commit('SET_DRAFT', { conversationId, context, draftReply });
+  setDraft({ commit }, { conversation_id: conversationId, context, draft_reply: draftReply, translated }) {
+    commit('SET_DRAFT', { conversationId, context, draftReply, translated: !!translated });
   },
   setLoading({ commit }, conversationId) {
     commit('SET_LOADING', conversationId);

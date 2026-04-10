@@ -29,9 +29,16 @@ const isLoading = computed(
   () => store.getters['voltAiDraft/isLoading'](conversationId.value)
 );
 
+const translationDisclaimer =
+  '*(This message has been translated using AI to help provide the best support experience)*';
+
 const onUseDraft = () => {
   if (draft.value?.draftReply) {
-    emit('useDraft', draft.value.draftReply);
+    let text = draft.value.draftReply;
+    if (draft.value.translated) {
+      text = `${text}\n\n${translationDisclaimer}`;
+    }
+    emit('useDraft', text);
   }
 };
 
@@ -201,6 +208,12 @@ useKeyboardEvents(keyboardEvents);
             class="text-sm text-n-slate-12 leading-relaxed whitespace-pre-line"
           >
             {{ draft.draftReply }}
+          </p>
+          <p
+            v-if="draft.translated"
+            class="text-xs text-n-slate-9 mt-1 italic"
+          >
+            Translated with AI — disclaimer will be added
           </p>
         </div>
       </div>
