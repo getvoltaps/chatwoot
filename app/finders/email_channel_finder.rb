@@ -43,7 +43,16 @@ class EmailChannelFinder
 
   def channel_from_email(email)
     normalized_email = normalize_email_with_plus_addressing(email)
-    Channel::Email.find_by('lower(email) = ? OR lower(forward_to_email) = ?', normalized_email, normalized_email)
+    Channel::Email.find_by('lower(email) = ? OR lower(forward_to_email) = ?', normalized_email, normalized_email) ||
+      channel_from_aliases(normalized_email)
+  end
+
+  def channel_from_aliases(email)
+    Channel::Email.where.not(email_aliases: [nil, '']).find_each do |channel|
+      aliases = channel.email_aliases.split(',').map { |a| a.strip.downcase }
+      return channel if aliases.include?(email.downcase)
+    end
+    nil
   end
 
   def bcc_processing_skipped_accounts
