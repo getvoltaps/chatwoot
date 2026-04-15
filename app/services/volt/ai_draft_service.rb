@@ -61,10 +61,10 @@ class Volt::AiDraftService
       Return a JSON object with these keys:
       1. "context": 2-3 short sentences summarizing what this conversation is about and any relevant history. Be concise.
       2. "draft_reply": A suggested reply the agent can send to the customer. Write naturally, be helpful, and match the conversation language. Do NOT include any email signature, sign-off, greeting closing, "best regards", "kind regards", "med venlig hilsen", or similar — the agent's signature is added automatically.
-      6. "translated": true if you wrote the draft in a different language than the agent's messages (i.e. you translated to match the customer's language), false otherwise.
-      3. "edition": Copy the EXACT full name (including any code in parentheses) from this list: #{edition_list}. Pick the single best match based on conversation context. You MUST use the exact string from the list, e.g. "Sweden Rock 2026 (SWE26)" not just "Sweden Rock 2026". If unclear, use null.
-      4. "product": One of: Volt Charging, Brick Charging, Locker, Cool Locker, Soundboks, Soundlock, Other products. Pick the best match. If unclear, use "Other products".
-      5. "subject": One of: Order confirmation, Deposits, Changes to order, Cancellation, Problems on-site, Complaints, Technical issues, Sales lead, General / Other. Pick the best match. If unclear, use "General / Other".
+      3. "translated": true if you wrote the draft in a different language than the agent's messages (i.e. you translated to match the customer's language), false otherwise. Always include this key.
+      4. "edition": Copy the EXACT full name (including any code in parentheses) from this list: #{edition_list}. Pick the single best match based on conversation context. You MUST use the exact string from the list, e.g. "Sweden Rock 2026 (SWE26)" not just "Sweden Rock 2026". If unclear, use null.
+      5. "product": One of: Volt Charging, Brick Charging, Locker, Cool Locker, Soundboks, Soundlock, Other products. Pick the best match. If unclear, use "Other products".
+      6. "subject": One of: Order confirmation, Deposits, Changes to order, Cancellation, Problems on-site, Complaints, Technical issues, Sales lead, General / Other. Pick the best match. If unclear, use "General / Other".
 
       Output ONLY valid JSON, no markdown fences, no extra text.
     PROMPT
