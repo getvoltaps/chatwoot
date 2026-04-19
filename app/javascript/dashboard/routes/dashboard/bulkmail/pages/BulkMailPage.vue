@@ -4,7 +4,7 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import {
   createNewContact,
-  searchContacts,
+  createContactSearcher,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
 import { appendSignature } from 'dashboard/helper/editorHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
@@ -12,6 +12,7 @@ import ConversationApi from 'dashboard/api/inbox/conversation';
 import Button from 'dashboard/components-next/button/Button.vue';
 
 const store = useStore();
+const searchContacts = createContactSearcher();
 
 const inboxesList = useMapGetter('inboxes/getInboxes');
 const messageSignature = useMapGetter('getMessageSignature');
@@ -171,10 +172,7 @@ const sendBulkMail = async () => {
   for (const email of parsedEmails.value) {
     try {
       let contact;
-      const results = await searchContacts({
-        keys: ['email'],
-        query: email,
-      });
+      const results = await searchContacts(email, { skipMinLength: true });
       const exactMatch = results.find(
         c => c.email?.toLowerCase() === email.toLowerCase()
       );
