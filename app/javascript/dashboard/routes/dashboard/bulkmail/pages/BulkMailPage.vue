@@ -27,7 +27,9 @@ const sendProgress = ref(0);
 const sendTotal = ref(0);
 const sendErrors = ref([]);
 const showInboxDropdown = ref(false);
+const showFormatGuide = ref(false);
 const fileInputRef = ref(null);
+const messageTextarea = ref(null);
 
 const emailInboxes = computed(() => {
   return inboxesList.value.filter(
@@ -84,7 +86,6 @@ const selectInbox = inbox => {
 const onFileSelect = event => {
   const files = Array.from(event.target.files || []);
   attachedFiles.value = [...attachedFiles.value, ...files];
-  // Reset input so same file can be re-selected
   event.target.value = '';
 };
 
@@ -96,6 +97,59 @@ const formatFileSize = bytes => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const wrapSelection = (before, after) => {
+  const el = messageTextarea.value;
+  if (!el) return;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const text = messageContent.value;
+  const selected = text.substring(start, end);
+  const replacement = `${before}${selected}${after || before}`;
+  messageContent.value =
+    text.substring(0, start) + replacement + text.substring(end);
+  // Re-focus and select the inner text
+  const cursorPos = start + before.length + selected.length + (after || before).length;
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(cursorPos, cursorPos);
+  });
+};
+
+const insertAtCursor = text => {
+  const el = messageTextarea.value;
+  if (!el) return;
+  const start = el.selectionStart;
+  const current = messageContent.value;
+  messageContent.value =
+    current.substring(0, start) + text + current.substring(start);
+  const cursorPos = start + text.length;
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(cursorPos, cursorPos);
+  });
+};
+
+const insertLink = () => {
+  const el = messageTextarea.value;
+  if (!el) return;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const selected = messageContent.value.substring(start, end);
+  const linkText = selected || 'link text';
+  const replacement = `[${linkText}](https://url)`;
+  messageContent.value =
+    messageContent.value.substring(0, start) +
+    replacement +
+    messageContent.value.substring(end);
+  // Select the URL part for easy replacement
+  const urlStart = start + linkText.length + 3;
+  const urlEnd = urlStart + 10;
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(urlStart, urlEnd);
+  });
 };
 
 const snoozeConversation = async conversationId => {
@@ -116,7 +170,6 @@ const sendBulkMail = async () => {
 
   for (const email of parsedEmails.value) {
     try {
-      // Find or create contact for this email
       let contact;
       const results = await searchContacts({
         keys: ['email'],
@@ -132,7 +185,6 @@ const sendBulkMail = async () => {
         contact = await createNewContact(email);
       }
 
-      // Create the conversation
       const payload = new FormData();
       payload.append('inbox_id', selectedInbox.value.id);
       payload.append('contact_id', contact.id);
@@ -142,14 +194,12 @@ const sendBulkMail = async () => {
         subject.value
       );
 
-      // Attach files
       attachedFiles.value.forEach(file => {
         payload.append('message[attachments][]', file);
       });
 
       const { data } = await ConversationApi.create(payload);
 
-      // Snooze until reply
       await snoozeConversation(data.id);
 
       sendProgress.value += 1;
@@ -332,13 +382,93 @@ onMounted(() => {
           />
         </div>
 
-        <!-- Message -->
+        <!-- Message with formatting toolbar -->
         <div class="flex flex-col gap-1.5 flex-1">
-          <label class="text-sm font-semibold text-n-slate-12">Message</label>
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-semibold text-n-slate-12">
+              Message
+            </label>
+            <button
+              class="text-xs text-n-slate-9 hover:text-n-slate-12 flex items-center gap-1"
+              @click="showFormatGuide = !showFormatGuide"
+            >
+              <span class="i-lucide-help-circle size-3" />
+              {{ showFormatGuide ? 'Hide' : 'Formatting guide' }}
+            </button>
+          </div>
+
+          <!-- Formatting guide -->
+          <div
+            v-if="showFormatGuide"
+            class="text-xs text-n-slate-11 bg-n-alpha-1 border border-n-weak rounded-lg p-3 space-y-1.5"
+          >
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <span class="font-mono">**bold**</span>
+              <span><strong>bold</strong></span>
+              <span class="font-mono">*italic*</span>
+              <span><em>italic</em></span>
+              <span class="font-mono">[text](https://url)</span>
+              <span>
+                <a
+                  href="#"
+                  class="text-n-brand underline"
+                  @click.prevent
+                >text</a>
+              </span>
+              <span class="font-mono">- item</span>
+              <span>Bullet list</span>
+              <span class="font-mono">1. item</span>
+              <span>Numbered list</span>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div
+            class="flex items-center gap-0.5 border border-n-strong border-b-0 rounded-t-lg bg-n-alpha-1 px-1 py-0.5"
+          >
+            <button
+              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
+              title="Bold"
+              @click="wrapSelection('**')"
+            >
+              <span class="i-lucide-bold size-3.5" />
+            </button>
+            <button
+              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
+              title="Italic"
+              @click="wrapSelection('*')"
+            >
+              <span class="i-lucide-italic size-3.5" />
+            </button>
+            <button
+              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
+              title="Insert link"
+              @click="insertLink"
+            >
+              <span class="i-lucide-link size-3.5" />
+            </button>
+            <div class="w-px h-4 bg-n-weak mx-1" />
+            <button
+              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
+              title="Bullet list"
+              @click="insertAtCursor('\n- ')"
+            >
+              <span class="i-lucide-list size-3.5" />
+            </button>
+            <button
+              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
+              title="Numbered list"
+              @click="insertAtCursor('\n1. ')"
+            >
+              <span class="i-lucide-list-ordered size-3.5" />
+            </button>
+          </div>
+
           <textarea
+            ref="messageTextarea"
             v-model="messageContent"
-            placeholder="Write your message..."
-            class="w-full flex-1 p-3 text-sm border rounded-lg resize-none border-n-strong bg-n-alpha-1 text-n-slate-12 placeholder:text-n-slate-9 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            placeholder="Write your message... supports **bold**, *italic*, [links](url)"
+            class="w-full flex-1 p-3 text-sm border rounded-b-lg rounded-t-none resize-none border-n-strong bg-n-alpha-1 text-n-slate-12 placeholder:text-n-slate-9 focus:outline-none focus:ring-2 focus:ring-n-brand font-mono"
           />
         </div>
 
