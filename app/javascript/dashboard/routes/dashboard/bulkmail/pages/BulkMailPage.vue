@@ -337,6 +337,8 @@ onMounted(() => {
               editor-key="bulk-mail"
               placeholder="Write your message..."
               :show-character-count="false"
+              :enable-captain-tools="false"
+              :enable-canned-responses="false"
               :signature="messageSignature"
               allow-signature
               :send-with-signature="!!selectedInbox"
@@ -438,5 +440,10 @@ onMounted(() => {
   min-height: 12rem;
   max-height: 24rem;
   overflow-y: auto;
+}
+
+/* Hide copilot button in bulk mail editor */
+.bulk-mail-editor :deep(.ProseMirror-copilot) {
+  display: none;
 }
 </style>
