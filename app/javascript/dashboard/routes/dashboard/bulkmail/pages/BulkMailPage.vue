@@ -10,6 +10,7 @@ import { appendSignature } from 'dashboard/helper/editorHelper';
 import ConversationApi from 'dashboard/api/inbox/conversation';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import Editor from 'dashboard/components-next/Editor/Editor.vue';
 
 const store = useStore();
 const searchContacts = createContactSearcher();
@@ -28,9 +29,7 @@ const sendProgress = ref(0);
 const sendTotal = ref(0);
 const sendErrors = ref([]);
 const showInboxDropdown = ref(false);
-const showFormatGuide = ref(false);
 const fileInputRef = ref(null);
-const messageTextarea = ref(null);
 
 const emailInboxes = computed(() => {
   return inboxesList.value.filter(
@@ -100,59 +99,6 @@ const formatFileSize = bytes => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const wrapSelection = (before, after) => {
-  const el = messageTextarea.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const end = el.selectionEnd;
-  const text = messageContent.value;
-  const selected = text.substring(start, end);
-  const replacement = `${before}${selected}${after || before}`;
-  messageContent.value =
-    text.substring(0, start) + replacement + text.substring(end);
-  // Re-focus and select the inner text
-  const cursorPos = start + before.length + selected.length + (after || before).length;
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(cursorPos, cursorPos);
-  });
-};
-
-const insertAtCursor = text => {
-  const el = messageTextarea.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const current = messageContent.value;
-  messageContent.value =
-    current.substring(0, start) + text + current.substring(start);
-  const cursorPos = start + text.length;
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(cursorPos, cursorPos);
-  });
-};
-
-const insertLink = () => {
-  const el = messageTextarea.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const end = el.selectionEnd;
-  const selected = messageContent.value.substring(start, end);
-  const linkText = selected || 'link text';
-  const replacement = `[${linkText}](https://url)`;
-  messageContent.value =
-    messageContent.value.substring(0, start) +
-    replacement +
-    messageContent.value.substring(end);
-  // Select the URL part for easy replacement
-  const urlStart = start + linkText.length + 3;
-  const urlEnd = urlStart + 10;
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(urlStart, urlEnd);
-  });
-};
-
 const snoozeConversation = async conversationId => {
   await ConversationApi.toggleStatus({
     conversationId,
@@ -173,7 +119,7 @@ const sendBulkMail = async () => {
     try {
       let contact;
       const results = await searchContacts(email, { skipMinLength: true });
-      const exactMatch = results.find(
+      const exactMatch = results?.find(
         c => c.email?.toLowerCase() === email.toLowerCase()
       );
 
@@ -380,94 +326,23 @@ onMounted(() => {
           />
         </div>
 
-        <!-- Message with formatting toolbar -->
-        <div class="flex flex-col gap-1.5 flex-1">
-          <div class="flex items-center justify-between">
-            <label class="text-sm font-semibold text-n-slate-12">
-              Message
-            </label>
-            <button
-              class="text-xs text-n-slate-9 hover:text-n-slate-12 flex items-center gap-1"
-              @click="showFormatGuide = !showFormatGuide"
-            >
-              <span class="i-lucide-help-circle size-3" />
-              {{ showFormatGuide ? 'Hide' : 'Formatting guide' }}
-            </button>
-          </div>
-
-          <!-- Formatting guide -->
+        <!-- Rich text message editor -->
+        <div class="flex flex-col gap-1.5 flex-1 min-h-0">
+          <label class="text-sm font-semibold text-n-slate-12">Message</label>
           <div
-            v-if="showFormatGuide"
-            class="text-xs text-n-slate-11 bg-n-alpha-1 border border-n-weak rounded-lg p-3 space-y-1.5"
+            class="flex-1 border rounded-lg border-n-strong overflow-hidden bulk-mail-editor"
           >
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-              <span class="font-mono">**bold**</span>
-              <span><strong>bold</strong></span>
-              <span class="font-mono">*italic*</span>
-              <span><em>italic</em></span>
-              <span class="font-mono">[text](https://url)</span>
-              <span>
-                <a
-                  href="#"
-                  class="text-n-brand underline"
-                  @click.prevent
-                >text</a>
-              </span>
-              <span class="font-mono">- item</span>
-              <span>Bullet list</span>
-              <span class="font-mono">1. item</span>
-              <span>Numbered list</span>
-            </div>
+            <Editor
+              v-model="messageContent"
+              editor-key="bulk-mail"
+              placeholder="Write your message..."
+              :show-character-count="false"
+              :signature="messageSignature"
+              allow-signature
+              :send-with-signature="!!selectedInbox"
+              channel-type="Channel::Email"
+            />
           </div>
-
-          <!-- Toolbar -->
-          <div
-            class="flex items-center gap-0.5 border border-n-strong border-b-0 rounded-t-lg bg-n-alpha-1 px-1 py-0.5"
-          >
-            <button
-              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
-              title="Bold"
-              @click="wrapSelection('**')"
-            >
-              <span class="i-lucide-bold size-3.5" />
-            </button>
-            <button
-              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
-              title="Italic"
-              @click="wrapSelection('*')"
-            >
-              <span class="i-lucide-italic size-3.5" />
-            </button>
-            <button
-              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
-              title="Insert link"
-              @click="insertLink"
-            >
-              <span class="i-lucide-link size-3.5" />
-            </button>
-            <div class="w-px h-4 bg-n-weak mx-1" />
-            <button
-              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
-              title="Bullet list"
-              @click="insertAtCursor('\n- ')"
-            >
-              <span class="i-lucide-list size-3.5" />
-            </button>
-            <button
-              class="p-1.5 rounded hover:bg-n-alpha-2 text-n-slate-11 hover:text-n-slate-12"
-              title="Numbered list"
-              @click="insertAtCursor('\n1. ')"
-            >
-              <span class="i-lucide-list-ordered size-3.5" />
-            </button>
-          </div>
-
-          <textarea
-            ref="messageTextarea"
-            v-model="messageContent"
-            placeholder="Write your message... supports **bold**, *italic*, [links](url)"
-            class="w-full flex-1 p-3 text-sm border rounded-b-lg rounded-t-none resize-none border-n-strong bg-n-alpha-1 text-n-slate-12 placeholder:text-n-slate-9 focus:outline-none focus:ring-2 focus:ring-n-brand font-mono"
-          />
         </div>
 
         <!-- Attachments -->
@@ -557,3 +432,11 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.bulk-mail-editor :deep(.ProseMirror-woot-style) {
+  min-height: 12rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+</style>
