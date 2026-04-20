@@ -28,13 +28,9 @@ export function useCaptain() {
   const draftMessage = useFunctionGetter('draftMessages/get', draftKey);
 
   // === Feature Flags ===
-  const captainEnabled = computed(() => {
-    return isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN);
-  });
-
-  const captainTasksEnabled = computed(() => {
-    return isCloudFeatureEnabled(FEATURE_FLAGS.CAPTAIN_TASKS);
-  });
+  // Copilot/Captain disabled — Volt uses its own Claude AI draft integration
+  const captainEnabled = computed(() => false);
+  const captainTasksEnabled = computed(() => false);
 
   // === Limits (Enterprise) ===
   const captainLimits = computed(() => {

@@ -442,8 +442,4 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-/* Hide copilot button in bulk mail editor */
-.bulk-mail-editor :deep(.ProseMirror-copilot) {
-  display: none;
-}
 </style>
