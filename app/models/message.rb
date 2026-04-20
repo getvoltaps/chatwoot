@@ -430,6 +430,7 @@ class Message < ApplicationRecord
 
   def reopen_resolved_conversation
     Current.executed_by = sender if conversation.inbox.api? && reopened_by_contact?
+    conversation.update!(agent_last_seen_at: nil)
     conversation.open!
   end
 
