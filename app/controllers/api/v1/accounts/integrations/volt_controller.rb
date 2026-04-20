@@ -8,7 +8,7 @@ class Api::V1::Accounts::Integrations::VoltController < Api::V1::Accounts::BaseC
     response = HTTParty.get(
       'https://api.getvolt.dk/v2/service/search',
       query: { q: query },
-      headers: { 'Content-Type' => 'application/json' }
+      headers: { 'Content-Type' => 'application/json', 'x-api-key' => VOLT_API_KEY }
     )
 
     if response.success?
