@@ -646,6 +646,21 @@ export default {
         ? appendSignature(message, this.messageSignature, effectiveChannelType)
         : removeSignature(message, this.messageSignature, effectiveChannelType);
     },
+    replaceText(text) {
+      if (this.sendWithSignature && this.messageSignature) {
+        const effectiveChannelType = getEffectiveChannelType(
+          this.channelType,
+          this.inbox?.medium || ''
+        );
+        this.message = appendSignature(
+          text,
+          this.messageSignature,
+          effectiveChannelType
+        );
+      } else {
+        this.message = text;
+      }
+    },
     removeFromDraft() {
       if (this.conversationIdByRoute) {
         const key = this.getDraftKey();
