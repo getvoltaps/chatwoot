@@ -11,7 +11,6 @@ import MessageList from 'next/message/MessageList.vue';
 import ConversationLabelSuggestion from './conversation/LabelSuggestion.vue';
 import Banner from 'dashboard/components/ui/Banner.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
-import VoltAiDraftPanel from './VoltAiDraftPanel.vue';
 import ResizableEditorWrapper from './ResizableEditorWrapper.vue';
 
 // stores and apis
@@ -45,7 +44,6 @@ export default {
     Banner,
     ConversationLabelSuggestion,
     Spinner,
-    VoltAiDraftPanel,
     ResizableEditorWrapper,
   },
   mixins: [inboxMixin],
@@ -440,9 +438,6 @@ export default {
       const payload = useSnakeCase(message);
       await this.$store.dispatch('sendMessageWithData', payload);
     },
-    handleUseDraft(draftText) {
-      emitter.emit(BUS_EVENTS.SET_EDITOR_CONTENT, draftText);
-    },
     toggleReplyEditorSize() {
       this.resizableEditorWrapperRef?.toggleEditorExpand?.();
     },
@@ -531,7 +526,6 @@ export default {
           />
         </div>
       </div>
-      <VoltAiDraftPanel @use-draft="handleUseDraft" />
       <ResizableEditorWrapper
         ref="resizableEditorWrapperRef"
         :container-height="Math.max(0, containerHeight - topBannerHeight)"
