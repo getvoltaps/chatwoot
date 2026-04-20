@@ -33,7 +33,7 @@ const isSmallScreen = computed(
 );
 
 const closeContactPanel = () => {
-  if (isSmallScreen.value && uiSettings.value?.is_contact_sidebar_open) {
+  if (isSmallScreen.value && activeTab.value !== null) {
     updateUISettings({
       is_contact_sidebar_open: false,
       is_copilot_panel_open: false,
