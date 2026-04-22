@@ -51,7 +51,7 @@ const onContextSubmit = () => {
 };
 
 const onContextKeydown = event => {
-  if (event.key === 'Enter') {
+  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
     event.preventDefault();
     onContextSubmit();
   }
@@ -171,20 +171,22 @@ useKeyboardEvents(keyboardEvents);
         <div class="text-xs font-semibold text-n-slate-11 uppercase tracking-wide">
           {{ draft ? 'Improve Draft' : 'Add Context' }}
         </div>
-        <div class="flex items-center gap-2">
-          <input
+        <div class="flex flex-col gap-2">
+          <textarea
             ref="contextInputRef"
             v-model="agentContext"
-            type="text"
-            placeholder="e.g. Customer is VIP, offer discount..."
-            class="flex-1 px-3 py-2 text-sm border rounded-lg border-n-strong bg-n-alpha-1 text-n-slate-12 placeholder:text-n-slate-9 focus:outline-none focus:ring-2 focus:ring-n-brand"
+            rows="5"
+            placeholder="e.g. I changed their email, tell them it's done..."
+            class="w-full px-3 py-2 text-sm border rounded-lg resize-none border-n-strong bg-n-alpha-1 text-n-slate-12 placeholder:text-n-slate-9 focus:outline-none focus:ring-2 focus:ring-n-brand"
             @keydown="onContextKeydown"
           />
           <NextButton
             sm
             variant="faded"
             color="blue"
+            label="Regenerate"
             icon="i-lucide-refresh-cw"
+            class="self-end"
             :disabled="isLoading"
             @click="onContextSubmit"
           />
