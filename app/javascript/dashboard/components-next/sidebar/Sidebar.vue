@@ -47,6 +47,10 @@ const isACustomBrandedInstance = useMapGetter(
   'globalConfig/isACustomBrandedInstance'
 );
 const isRTL = useMapGetter('accounts/isRTL');
+const currentUser = useMapGetter('getCurrentUser');
+const isSuperAdmin = computed(
+  () => currentUser.value?.type === 'SuperAdmin'
+);
 
 const { width: windowWidth } = useWindowSize();
 const isMobile = computed(() => windowWidth.value < 768);
@@ -691,75 +695,49 @@ const menuItems = computed(() => {
           icon: 'i-lucide-code',
           to: accountScopedRoute('attributes_list'),
         },
-        {
-          name: 'Settings Automation',
-          label: t('SIDEBAR.AUTOMATION'),
-          icon: 'i-lucide-repeat',
-          to: accountScopedRoute('automation_list'),
-        },
-        {
-          name: 'Settings Agent Bots',
-          label: t('SIDEBAR.AGENT_BOTS'),
-          icon: 'i-lucide-bot',
-          to: accountScopedRoute('agent_bots'),
-        },
-        {
-          name: 'Settings Macros',
-          label: t('SIDEBAR.MACROS'),
-          icon: 'i-lucide-toy-brick',
-          to: accountScopedRoute('macros_wrapper'),
-        },
+        ...(isSuperAdmin.value
+          ? [
+              {
+                name: 'Settings Automation',
+                label: t('SIDEBAR.AUTOMATION'),
+                icon: 'i-lucide-repeat',
+                to: accountScopedRoute('automation_list'),
+              },
+              {
+                name: 'Settings Agent Bots',
+                label: t('SIDEBAR.AGENT_BOTS'),
+                icon: 'i-lucide-bot',
+                to: accountScopedRoute('agent_bots'),
+              },
+              {
+                name: 'Settings Macros',
+                label: t('SIDEBAR.MACROS'),
+                icon: 'i-lucide-toy-brick',
+                to: accountScopedRoute('macros_wrapper'),
+              },
+              {
+                name: 'Settings Integrations',
+                label: t('SIDEBAR.INTEGRATIONS'),
+                icon: 'i-lucide-blocks',
+                to: accountScopedRoute('settings_applications'),
+              },
+            ]
+          : []),
         {
           name: 'Settings Canned Responses',
           label: t('SIDEBAR.CANNED_RESPONSES'),
           icon: 'i-lucide-message-square-quote',
           to: accountScopedRoute('canned_list'),
         },
-        {
-          name: 'Settings Integrations',
-          label: t('SIDEBAR.INTEGRATIONS'),
-          icon: 'i-lucide-blocks',
-          to: accountScopedRoute('settings_applications'),
-        },
-        {
-          name: 'Settings Audit Logs',
-          label: t('SIDEBAR.AUDIT_LOGS'),
-          icon: 'i-lucide-briefcase',
-          to: accountScopedRoute('auditlogs_list'),
-        },
-        {
-          name: 'Settings Custom Roles',
-          label: t('SIDEBAR.CUSTOM_ROLES'),
-          icon: 'i-lucide-shield-plus',
-          to: accountScopedRoute('custom_roles_list'),
-        },
-        {
-          name: 'Settings Sla',
-          label: t('SIDEBAR.SLA'),
-          icon: 'i-lucide-clock-alert',
-          to: accountScopedRoute('sla_list'),
-        },
-        {
-          name: 'Conversation Workflow',
-          label: t('SIDEBAR.CONVERSATION_WORKFLOW'),
-          icon: 'i-lucide-workflow',
-          to: accountScopedRoute('conversation_workflow_index'),
-        },
-        {
-          name: 'Settings Security',
-          label: t('SIDEBAR.SECURITY'),
-          icon: 'i-lucide-shield',
-          to: accountScopedRoute('security_settings_index'),
-        },
-        {
-          name: 'Settings Billing',
-          label: t('SIDEBAR.BILLING'),
-          icon: 'i-lucide-credit-card',
-          to: accountScopedRoute('billing_settings_index'),
-        },
       ],
     },
-  ].filter(item => !['Captain', 'Campaigns', 'Portals'].includes(item.name));
+  ]
+    .filter(item => !['Captain', 'Campaigns', 'Portals'].includes(item.name))
+    .filter(item => {
+      // Contacts only visible to super admin
+      if (item.name === 'Contacts' && !isSuperAdmin.value) return false;
+      return true;
+    });
 });
 </script>
 
