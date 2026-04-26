@@ -209,7 +209,16 @@ const resetToInherit = async () => {
 const saveEditionHours = async () => {
   savingHours.value = true;
   try {
-    const openingHours = { ...hoursSchedule.value };
+    // Only save exceptions — clear all weekday schedules
+    const openingHours = {
+      mon: [],
+      tue: [],
+      wed: [],
+      thu: [],
+      fri: [],
+      sat: [],
+      sun: [],
+    };
     if (Object.keys(hoursExceptions.value).length > 0) {
       openingHours.exceptions = hoursExceptions.value;
     }
