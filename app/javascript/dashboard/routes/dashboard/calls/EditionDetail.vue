@@ -44,6 +44,78 @@ const editionId = computed(() => route.params.editionId);
 
 const assignedAgentIds = computed(() => agents.value.map(a => a.agent_id));
 
+// Event hours quick-fill
+const eventHoursFrom = ref('08:00');
+const eventHoursTo = ref('22:00');
+const beforeDays = ref(2);
+const afterDays = ref(2);
+const beforeFrom = ref('09:00');
+const beforeTo = ref('17:00');
+const afterFrom = ref('09:00');
+const afterTo = ref('17:00');
+
+const getDateRange = (startStr, endStr) => {
+  const dates = [];
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(current.toISOString().split('T')[0]);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+};
+
+const getOffsetDates = (dateStr, offset, direction) => {
+  const dates = [];
+  for (let i = 1; i <= offset; i++) {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + (direction === 'before' ? -i : i));
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates.sort();
+};
+
+const applyEventHours = () => {
+  if (!edition.value?.startDate || !edition.value?.endDate) return;
+
+  const updated = { ...hoursExceptions.value };
+
+  // Days before event
+  const before = getOffsetDates(
+    edition.value.startDate,
+    beforeDays.value,
+    'before'
+  );
+  before.forEach(date => {
+    updated[date] = [[beforeFrom.value, beforeTo.value]];
+  });
+
+  // Event days
+  const eventDates = getDateRange(
+    edition.value.startDate,
+    edition.value.endDate
+  );
+  eventDates.forEach(date => {
+    updated[date] = [[eventHoursFrom.value, eventHoursTo.value]];
+  });
+
+  // Days after event
+  const after = getOffsetDates(
+    edition.value.endDate,
+    afterDays.value,
+    'after'
+  );
+  after.forEach(date => {
+    updated[date] = [[afterFrom.value, afterTo.value]];
+  });
+
+  hoursExceptions.value = updated;
+  if (!useCustomHours.value) {
+    useCustomHours.value = true;
+  }
+};
+
 const editionName = computed(() => edition.value?.name || '');
 
 const isLive = computed(() => edition.value?.is_active_now === 1);
@@ -338,6 +410,105 @@ onMounted(fetchEdition);
           :readonly="isInherited && !useCustomHours"
           @update="onUpdateSchedule"
         />
+
+        <!-- Event Hours Quick-Fill -->
+        <div
+          v-if="edition?.startDate && edition?.endDate"
+          class="mt-6 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
+        >
+          <h3 class="text-sm font-semibold text-n-slate-12 mb-1">
+            Event Hours
+          </h3>
+          <p class="text-xs text-n-slate-11 mb-4">
+            Set phone hours around the event. This will create special days for
+            {{ beforeDays }} days before, the event itself, and {{ afterDays }}
+            days after.
+          </p>
+
+          <div class="flex flex-col gap-3">
+            <!-- Before event -->
+            <div class="flex items-center gap-3">
+              <div class="w-36 flex items-center gap-2">
+                <input
+                  v-model.number="beforeDays"
+                  type="number"
+                  min="0"
+                  max="7"
+                  class="w-14 rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12 text-center"
+                />
+                <span class="text-sm text-n-slate-11">days before</span>
+              </div>
+              <input
+                v-model="beforeFrom"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+              <span class="text-n-slate-11">—</span>
+              <input
+                v-model="beforeTo"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+            </div>
+
+            <!-- Event days -->
+            <div class="flex items-center gap-3">
+              <div class="w-36">
+                <span class="text-sm font-medium text-n-slate-12">
+                  Event days
+                </span>
+              </div>
+              <input
+                v-model="eventHoursFrom"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+              <span class="text-n-slate-11">—</span>
+              <input
+                v-model="eventHoursTo"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+            </div>
+
+            <!-- After event -->
+            <div class="flex items-center gap-3">
+              <div class="w-36 flex items-center gap-2">
+                <input
+                  v-model.number="afterDays"
+                  type="number"
+                  min="0"
+                  max="7"
+                  class="w-14 rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12 text-center"
+                />
+                <span class="text-sm text-n-slate-11">days after</span>
+              </div>
+              <input
+                v-model="afterFrom"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+              <span class="text-n-slate-11">—</span>
+              <input
+                v-model="afterTo"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <Button
+              size="sm"
+              faded
+              color="blue"
+              label="Apply Event Hours"
+              icon="i-lucide-calendar-plus"
+              @click="applyEventHours"
+            />
+          </div>
+        </div>
+
         <ExceptionsEditor
           :exceptions="hoursExceptions"
           :readonly="isInherited && !useCustomHours"
