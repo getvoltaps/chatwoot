@@ -15,8 +15,6 @@ import {
 } from 'dashboard/components-next/table';
 import AddAgentModal from './AddAgentModal.vue';
 import AssignAgentModal from './AssignAgentModal.vue';
-import OpeningHoursEditor from './OpeningHoursEditor.vue';
-import ExceptionsEditor from './ExceptionsEditor.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -44,21 +42,16 @@ const editionId = computed(() => route.params.editionId);
 
 const assignedAgentIds = computed(() => agents.value.map(a => a.agent_id));
 
-// Event hours quick-fill
-const eventHoursFrom = ref('08:00');
-const eventHoursTo = ref('22:00');
-const beforeDays = ref(2);
-const afterDays = ref(2);
-const beforeFrom = ref('09:00');
-const beforeTo = ref('17:00');
-const afterFrom = ref('09:00');
-const afterTo = ref('17:00');
+// Event day rows: 2 before + event days + 2 after
+const beforeCount = ref(2);
+const afterCount = ref(2);
 
-const getDateRange = (startStr, endStr) => {
+const eventDayRows = ref([]);
+
+const buildDateRange = (startStr, endStr) => {
   const dates = [];
-  const start = new Date(startStr);
+  const current = new Date(startStr);
   const end = new Date(endStr);
-  const current = new Date(start);
   while (current <= end) {
     dates.push(current.toISOString().split('T')[0]);
     current.setDate(current.getDate() + 1);
@@ -66,50 +59,69 @@ const getDateRange = (startStr, endStr) => {
   return dates;
 };
 
-const getOffsetDates = (dateStr, offset, direction) => {
-  const dates = [];
-  for (let i = 1; i <= offset; i++) {
-    const d = new Date(dateStr);
-    d.setDate(d.getDate() + (direction === 'before' ? -i : i));
-    dates.push(d.toISOString().split('T')[0]);
-  }
-  return dates.sort();
+const formatDayLabel = dateStr => {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 };
 
-const applyEventHours = () => {
+const isEventDay = dateStr => {
+  if (!edition.value?.startDate || !edition.value?.endDate) return false;
+  return dateStr >= edition.value.startDate && dateStr <= edition.value.endDate;
+};
+
+const buildEventDayRows = () => {
   if (!edition.value?.startDate || !edition.value?.endDate) return;
 
-  const updated = { ...hoursExceptions.value };
+  const start = new Date(edition.value.startDate);
+  const end = new Date(edition.value.endDate);
 
-  // Days before event
-  const before = getOffsetDates(
-    edition.value.startDate,
-    beforeDays.value,
-    'before'
+  // Days before
+  const beforeStart = new Date(start);
+  beforeStart.setDate(beforeStart.getDate() - beforeCount.value);
+  const beforeDates = buildDateRange(
+    beforeStart.toISOString().split('T')[0],
+    new Date(start.getTime() - 86400000).toISOString().split('T')[0]
   );
-  before.forEach(date => {
-    updated[date] = [[beforeFrom.value, beforeTo.value]];
-  });
 
   // Event days
-  const eventDates = getDateRange(
+  const eventDates = buildDateRange(
     edition.value.startDate,
     edition.value.endDate
   );
-  eventDates.forEach(date => {
-    updated[date] = [[eventHoursFrom.value, eventHoursTo.value]];
-  });
 
-  // Days after event
-  const after = getOffsetDates(
-    edition.value.endDate,
-    afterDays.value,
-    'after'
+  // Days after
+  const afterEnd = new Date(end);
+  afterEnd.setDate(afterEnd.getDate() + afterCount.value);
+  const afterDates = buildDateRange(
+    new Date(end.getTime() + 86400000).toISOString().split('T')[0],
+    afterEnd.toISOString().split('T')[0]
   );
-  after.forEach(date => {
-    updated[date] = [[afterFrom.value, afterTo.value]];
-  });
 
+  const allDates = [...beforeDates, ...eventDates, ...afterDates];
+  eventDayRows.value = allDates.map(date => {
+    const existing = hoursExceptions.value[date];
+    const hasExisting = existing !== undefined;
+    return {
+      date,
+      closed: hasExisting ? existing.length === 0 : true,
+      from: existing?.[0]?.[0] || (isEventDay(date) ? '08:00' : '09:00'),
+      to: existing?.[0]?.[1] || (isEventDay(date) ? '22:00' : '17:00'),
+    };
+  });
+};
+
+const syncRowsToExceptions = () => {
+  const updated = {};
+  eventDayRows.value.forEach(row => {
+    // Only add rows that are enabled (not closed/empty)
+    if (!row.closed && row.from && row.to) {
+      updated[row.date] = [[row.from, row.to]];
+    }
+  });
   hoursExceptions.value = updated;
   if (!useCustomHours.value) {
     useCustomHours.value = true;
@@ -160,8 +172,15 @@ const fetchEdition = async () => {
     hoursExceptions.value = exceptions || {};
     isInherited.value = hoursRes.data.inherited_from === 'support';
     useCustomHours.value = !isInherited.value && hoursRes.data.opening_hours != null;
+    // Build day rows if we have edition dates
+    if (edition.value?.startDate && edition.value?.endDate) {
+      buildEventDayRows();
+    }
   } catch {
     // Hours may not be configured yet — not an error
+    if (edition.value?.startDate && edition.value?.endDate) {
+      buildEventDayRows();
+    }
   }
 };
 
@@ -204,14 +223,6 @@ const saveEditionHours = async () => {
   } finally {
     savingHours.value = false;
   }
-};
-
-const onUpdateSchedule = schedule => {
-  hoursSchedule.value = schedule;
-};
-
-const onUpdateExceptions = exceptions => {
-  hoursExceptions.value = exceptions;
 };
 
 const openAddModal = () => {
@@ -358,28 +369,29 @@ onMounted(fetchEdition);
     </template>
 
     <template #body>
-      <!-- Opening Hours Section -->
-      <div class="mb-8">
+      <!-- Phone Hours Section -->
+      <div v-if="edition?.startDate && edition?.endDate" class="mb-8">
         <div class="flex items-center justify-between mb-3">
           <div>
             <h3 class="text-base font-semibold text-n-slate-12">
-              {{ t('CALLS.OPENING_HOURS.TITLE') }}
+              Phone Hours
             </h3>
             <p class="text-sm text-n-slate-11">
-              {{ t('CALLS.OPENING_HOURS.DESCRIPTION') }}
+              Set phone hours for each day around the event. Only enabled days
+              are saved.
             </p>
           </div>
           <div class="flex gap-2">
             <Button
-              v-if="isInherited && !useCustomHours"
+              v-if="eventDayRows.length === 0"
               size="sm"
               faded
               color="blue"
-              :label="t('CALLS.OPENING_HOURS.USE_CUSTOM')"
-              icon="i-lucide-pencil"
-              @click="enableCustomHours"
+              label="Set up days"
+              icon="i-lucide-calendar-plus"
+              @click="buildEventDayRows"
             />
-            <template v-if="useCustomHours || (!isInherited && hoursData?.opening_hours)">
+            <template v-else>
               <Button
                 size="sm"
                 faded
@@ -392,128 +404,81 @@ onMounted(fetchEdition);
                 size="sm"
                 :label="t('CALLS.OPENING_HOURS.SAVE')"
                 :is-loading="savingHours"
-                @click="saveEditionHours"
+                @click="syncRowsToExceptions(); saveEditionHours()"
               />
             </template>
           </div>
         </div>
 
         <div
-          v-if="isInherited && !useCustomHours"
+          v-if="isInherited && eventDayRows.length === 0"
           class="text-xs text-n-blue-11 bg-n-blue-2 rounded-lg px-3 py-2 mb-3"
         >
           {{ t('CALLS.OPENING_HOURS.INHERITING') }}
         </div>
 
-        <OpeningHoursEditor
-          :schedule="hoursSchedule"
-          :readonly="isInherited && !useCustomHours"
-          @update="onUpdateSchedule"
-        />
-
-        <!-- Event Hours Quick-Fill -->
-        <div
-          v-if="edition?.startDate && edition?.endDate"
-          class="mt-6 rounded-xl border border-n-weak bg-n-alpha-1 p-4"
-        >
-          <h3 class="text-sm font-semibold text-n-slate-12 mb-1">
-            Event Hours
-          </h3>
-          <p class="text-xs text-n-slate-11 mb-4">
-            Set phone hours around the event. This will create special days for
-            {{ beforeDays }} days before, the event itself, and {{ afterDays }}
-            days after.
-          </p>
-
-          <div class="flex flex-col gap-3">
-            <!-- Before event -->
-            <div class="flex items-center gap-3">
-              <div class="w-36 flex items-center gap-2">
-                <input
-                  v-model.number="beforeDays"
-                  type="number"
-                  min="0"
-                  max="7"
-                  class="w-14 rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12 text-center"
-                />
-                <span class="text-sm text-n-slate-11">days before</span>
-              </div>
-              <input
-                v-model="beforeFrom"
-                type="time"
-                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-              />
-              <span class="text-n-slate-11">—</span>
-              <input
-                v-model="beforeTo"
-                type="time"
-                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-              />
-            </div>
-
-            <!-- Event days -->
-            <div class="flex items-center gap-3">
-              <div class="w-36">
-                <span class="text-sm font-medium text-n-slate-12">
-                  Event days
-                </span>
-              </div>
-              <input
-                v-model="eventHoursFrom"
-                type="time"
-                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-              />
-              <span class="text-n-slate-11">—</span>
-              <input
-                v-model="eventHoursTo"
-                type="time"
-                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-              />
-            </div>
-
-            <!-- After event -->
-            <div class="flex items-center gap-3">
-              <div class="w-36 flex items-center gap-2">
-                <input
-                  v-model.number="afterDays"
-                  type="number"
-                  min="0"
-                  max="7"
-                  class="w-14 rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12 text-center"
-                />
-                <span class="text-sm text-n-slate-11">days after</span>
-              </div>
-              <input
-                v-model="afterFrom"
-                type="time"
-                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-              />
-              <span class="text-n-slate-11">—</span>
-              <input
-                v-model="afterTo"
-                type="time"
-                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-              />
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <Button
-              size="sm"
-              faded
-              color="blue"
-              label="Apply Event Hours"
-              icon="i-lucide-calendar-plus"
-              @click="applyEventHours"
+        <!-- Day-by-day rows -->
+        <div v-if="eventDayRows.length" class="flex flex-col gap-1">
+          <div
+            v-for="row in eventDayRows"
+            :key="row.date"
+            class="flex items-center gap-3 rounded-lg px-3 py-2"
+            :class="
+              isEventDay(row.date)
+                ? 'bg-n-blue-2/50'
+                : 'bg-n-alpha-1'
+            "
+          >
+            <!-- Enable checkbox -->
+            <input
+              v-model="row.closed"
+              type="checkbox"
+              class="m-0"
+              :true-value="false"
+              :false-value="true"
             />
+
+            <!-- Date label -->
+            <div class="w-36">
+              <span
+                class="text-sm"
+                :class="
+                  row.closed
+                    ? 'text-n-slate-9'
+                    : isEventDay(row.date)
+                      ? 'font-semibold text-n-blue-11'
+                      : 'font-medium text-n-slate-12'
+                "
+              >
+                {{ formatDayLabel(row.date) }}
+              </span>
+              <span
+                v-if="isEventDay(row.date)"
+                class="ml-1.5 text-xs text-n-blue-9"
+              >
+                Event
+              </span>
+            </div>
+
+            <!-- Time inputs -->
+            <template v-if="!row.closed">
+              <input
+                v-model="row.from"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+              <span class="text-n-slate-11">—</span>
+              <input
+                v-model="row.to"
+                type="time"
+                class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+              />
+            </template>
+            <span v-else class="text-sm text-n-slate-9 italic">
+              No phone hours
+            </span>
           </div>
         </div>
-
-        <ExceptionsEditor
-          :exceptions="hoursExceptions"
-          :readonly="isInherited && !useCustomHours"
-          @update="onUpdateExceptions"
-        />
       </div>
 
       <!-- Agents Section -->
