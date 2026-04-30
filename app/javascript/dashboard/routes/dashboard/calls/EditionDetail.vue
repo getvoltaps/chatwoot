@@ -32,10 +32,7 @@ const editModalRef = ref(null);
 
 // Opening hours
 const hoursData = ref(null);
-const hoursSchedule = ref({});
 const hoursExceptions = ref({});
-const isInherited = ref(true);
-const useCustomHours = ref(false);
 const savingHours = ref(false);
 
 const editionId = computed(() => route.params.editionId);
@@ -117,15 +114,11 @@ const buildEventDayRows = () => {
 const syncRowsToExceptions = () => {
   const updated = {};
   eventDayRows.value.forEach(row => {
-    // Only add rows that are enabled (not closed/empty)
     if (!row.closed && row.from && row.to) {
       updated[row.date] = [[row.from, row.to]];
     }
   });
   hoursExceptions.value = updated;
-  if (!useCustomHours.value) {
-    useCustomHours.value = true;
-  }
 };
 
 const editionName = computed(() => edition.value?.name || '');
@@ -167,42 +160,13 @@ const fetchEdition = async () => {
     const hoursRes = await VoltAPI.getEditionHours(editionId.value);
     hoursData.value = hoursRes.data;
     const hours = hoursRes.data.opening_hours || {};
-    const { exceptions, ...weekdays } = hours;
-    hoursSchedule.value = weekdays;
-    hoursExceptions.value = exceptions || {};
-    isInherited.value = hoursRes.data.inherited_from === 'support';
-    useCustomHours.value = !isInherited.value && hoursRes.data.opening_hours != null;
-    // Build day rows if we have edition dates
-    if (edition.value?.startDate && edition.value?.endDate) {
-      buildEventDayRows();
-    }
+    hoursExceptions.value = hours.exceptions || {};
   } catch {
     // Hours may not be configured yet — not an error
-    if (edition.value?.startDate && edition.value?.endDate) {
-      buildEventDayRows();
-    }
   }
-};
-
-const enableCustomHours = () => {
-  useCustomHours.value = true;
-};
-
-const resetToInherit = async () => {
-  try {
-    await VoltAPI.deleteEditionHours(editionId.value);
-    useAlert(t('CALLS.API.HOURS_RESET'));
-    // Reload hours
-    const { data } = await VoltAPI.getEditionHours(editionId.value);
-    hoursData.value = data;
-    const hours = data.opening_hours || {};
-    const { exceptions, ...weekdays } = hours;
-    hoursSchedule.value = weekdays;
-    hoursExceptions.value = exceptions || {};
-    isInherited.value = data.inherited_from === 'support';
-    useCustomHours.value = false;
-  } catch {
-    useAlert(t('CALLS.API.ERROR'));
+  // Always build day rows from edition dates
+  if (edition.value?.startDate && edition.value?.endDate) {
+    buildEventDayRows();
   }
 };
 
@@ -392,38 +356,13 @@ onMounted(fetchEdition);
           </div>
           <div class="flex gap-2">
             <Button
-              v-if="eventDayRows.length === 0"
+              v-if="eventDayRows.length"
               size="sm"
-              faded
-              color="blue"
-              label="Set up days"
-              icon="i-lucide-calendar-plus"
-              @click="buildEventDayRows"
+              :label="t('CALLS.OPENING_HOURS.SAVE')"
+              :is-loading="savingHours"
+              @click="syncRowsToExceptions(); saveEditionHours()"
             />
-            <template v-else>
-              <Button
-                size="sm"
-                faded
-                slate
-                :label="t('CALLS.OPENING_HOURS.RESET_INHERIT')"
-                icon="i-lucide-undo-2"
-                @click="resetToInherit"
-              />
-              <Button
-                size="sm"
-                :label="t('CALLS.OPENING_HOURS.SAVE')"
-                :is-loading="savingHours"
-                @click="syncRowsToExceptions(); saveEditionHours()"
-              />
-            </template>
           </div>
-        </div>
-
-        <div
-          v-if="isInherited && eventDayRows.length === 0"
-          class="text-xs text-n-blue-11 bg-n-blue-2 rounded-lg px-3 py-2 mb-3"
-        >
-          {{ t('CALLS.OPENING_HOURS.INHERITING') }}
         </div>
 
         <!-- Day-by-day rows -->
