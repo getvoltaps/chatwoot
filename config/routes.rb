@@ -344,9 +344,6 @@ Rails.application.routes.draw do
                 get :twilio_queues
                 get :twilio_agents
                 get 'twilio_agents/:agent_id', action: :twilio_agent
-                post :twilio_agents, action: :twilio_add_agent, as: :twilio_add_agent
-                match 'twilio_agents/:agent_id', action: :twilio_update_agent, via: %i[put patch]
-                delete 'twilio_agents/:agent_id', action: :twilio_delete_agent
                 get 'twilio_agents/:agent_id/assignments', action: :twilio_agent_assignments
                 post 'twilio_agents/:agent_id/assignments', action: :twilio_add_assignment
                 put 'twilio_agents/:agent_id/assignments/:assignment_id', action: :twilio_update_assignment

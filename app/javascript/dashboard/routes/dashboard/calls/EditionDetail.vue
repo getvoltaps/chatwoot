@@ -186,7 +186,6 @@ const saveEditionHours = async () => {
       opening_hours: openingHours,
     });
     useAlert(t('CALLS.API.HOURS_SAVED'));
-    isInherited.value = false;
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   } finally {
