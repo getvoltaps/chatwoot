@@ -98,9 +98,13 @@ const fetchQueues = async () => {
       VoltAPI.getTwilioQueues(),
       VoltAPI.getTwilioAgents(),
     ]);
-    editionQueues.value = Array.isArray(editionsRes.data)
-      ? editionsRes.data
-      : [];
+    const HIDDEN_EDITIONS = ['Test School'];
+    const THREE_DAYS_AGO = new Date();
+    THREE_DAYS_AGO.setDate(THREE_DAYS_AGO.getDate() - 3);
+
+    editionQueues.value = (Array.isArray(editionsRes.data) ? editionsRes.data : [])
+      .filter(e => !HIDDEN_EDITIONS.includes(e.name))
+      .filter(e => !e.endDate || new Date(e.endDate) >= THREE_DAYS_AGO);
     genericQueues.value = queuesRes.data?.generic_queues || [];
     allAgents.value = Array.isArray(agentsRes.data) ? agentsRes.data : [];
   } catch {
