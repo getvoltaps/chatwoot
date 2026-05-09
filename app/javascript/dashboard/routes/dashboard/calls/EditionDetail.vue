@@ -37,7 +37,7 @@ const savingHours = ref(false);
 
 const editionId = computed(() => route.params.editionId);
 
-const assignedAgentIds = computed(() => agents.value.map(a => a.agent_id));
+const assignedAgentIds = computed(() => agents.value.map(a => a.internal_user_id));
 
 // Event day rows: 2 before + event days + 2 after
 const beforeCount = ref(2);
@@ -133,15 +133,11 @@ const dateRange = computed(() => {
 const tableHeaders = computed(() => [
   t('CALLS.EDITION_DETAIL.NAME'),
   t('CALLS.EDITION_DETAIL.PHONE'),
+  'Email',
   t('CALLS.EDITION_DETAIL.PRIORITY'),
-  t('CALLS.EDITION_DETAIL.SHOW_CALLER_ID'),
   t('CALLS.EDITION_DETAIL.ACTIVE'),
   t('CALLS.EDITION_DETAIL.ACTIONS'),
 ]);
-
-const isAgentActive = agent => {
-  return agent.agent_active && agent.assignment_active;
-};
 
 const fetchEdition = async () => {
   isLoading.value = true;
@@ -227,10 +223,10 @@ const closeDeleteConfirm = () => {
   selectedAgent.value = null;
 };
 
-const onAddAgent = async ({ agent_id, priority }) => {
+const onAddAgent = async ({ internal_user_id, priority }) => {
   try {
-    await VoltAPI.addAgentAssignment(agent_id, {
-      edition_id: editionId.value,
+    await VoltAPI.addTwilioEditionAgent(editionId.value, {
+      internal_user_id,
       priority,
     });
     useAlert(t('CALLS.API.ASSIGNMENT_ADDED'));
@@ -245,19 +241,9 @@ const onAddAgent = async ({ agent_id, priority }) => {
 const onEditAgent = async agentData => {
   try {
     const agent = selectedAgent.value;
-    // Update agent identity (name, phone, show_caller_id, is_active)
-    const identityData = {
-      agent_phone: agentData.agent_phone,
-      agent_name: agentData.agent_name,
-      show_caller_id: agentData.show_caller_id,
-      is_active: agentData.is_active,
-    };
-    await VoltAPI.updateTwilioAgent(agent.agent_id, identityData);
-
-    // Update assignment fields (priority)
     if (agentData.priority !== undefined) {
       await VoltAPI.updateAgentAssignment(
-        agent.agent_id,
+        agent.internal_user_id,
         agent.assignment_id,
         { priority: agentData.priority }
       );
@@ -459,31 +445,24 @@ onMounted(fetchEdition);
                 </BaseTableCell>
                 <BaseTableCell>
                   <span class="text-body-main text-n-slate-11">
-                    {{ agent.priority }}
+                    {{ agent.agent_email || '—' }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
-                  <span
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                    :class="
-                      agent.show_caller_id
-                        ? 'bg-n-teal-2 text-n-teal-11'
-                        : 'bg-n-alpha-2 text-n-slate-11'
-                    "
-                  >
-                    {{ agent.show_caller_id ? 'Yes' : 'No' }}
+                  <span class="text-body-main text-n-slate-11">
+                    {{ agent.priority }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
                   <span
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
                     :class="
-                      isAgentActive(agent)
+                      agent.assignment_active
                         ? 'bg-n-teal-2 text-n-teal-11'
                         : 'bg-n-alpha-2 text-n-slate-11'
                     "
                   >
-                    {{ isAgentActive(agent) ? 'Active' : 'Inactive' }}
+                    {{ agent.assignment_active ? 'Active' : 'Inactive' }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell align="end">

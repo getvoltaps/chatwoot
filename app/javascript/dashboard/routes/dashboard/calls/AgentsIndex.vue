@@ -12,22 +12,13 @@ import {
   BaseTableRow,
   BaseTableCell,
 } from 'dashboard/components-next/table';
-import AddAgentModal from './AddAgentModal.vue';
 
 const { t } = useI18n();
 
 const isLoading = ref(true);
-const agents = ref([]);
+const users = ref([]);
 const editions = ref([]);
-const expandedAgentId = ref(null);
-
-// Agent modals
-const showAddModal = ref(false);
-const showEditModal = ref(false);
-const showDeleteConfirm = ref(false);
-const selectedAgent = ref(null);
-const addModalRef = ref(null);
-const editModalRef = ref(null);
+const expandedUserId = ref(null);
 
 // Assignment form
 const showAssignForm = ref(false);
@@ -39,22 +30,21 @@ const assignPriority = ref(0);
 const QUEUE_OPTIONS = ['support', 'hr', 'sales'];
 
 const tableHeaders = computed(() => [
-  t('CALLS.AGENTS.NAME'),
-  t('CALLS.AGENTS.PHONE'),
-  t('CALLS.AGENTS.CALLER_ID'),
-  t('CALLS.AGENTS.ACTIVE'),
-  t('CALLS.AGENTS.ASSIGNMENTS'),
-  t('CALLS.AGENTS.ACTIONS'),
+  'Name',
+  'Phone',
+  'Email',
+  'Assignments',
+  '',
 ]);
 
 const fetchData = async () => {
   isLoading.value = true;
   try {
-    const [agentsRes, editionsRes] = await Promise.all([
+    const [usersRes, editionsRes] = await Promise.all([
       VoltAPI.getTwilioAgents(),
       VoltAPI.getTwilioEditions(),
     ]);
-    agents.value = Array.isArray(agentsRes.data) ? agentsRes.data : [];
+    users.value = Array.isArray(usersRes.data) ? usersRes.data : [];
     editions.value = Array.isArray(editionsRes.data) ? editionsRes.data : [];
   } catch {
     useAlert(t('CALLS.API.ERROR'));
@@ -63,112 +53,30 @@ const fetchData = async () => {
   }
 };
 
-const refreshAgents = async () => {
+const refreshUsers = async () => {
   try {
     const { data } = await VoltAPI.getTwilioAgents();
-    agents.value = Array.isArray(data) ? data : [];
+    users.value = Array.isArray(data) ? data : [];
   } catch {
     // silent
   }
 };
 
-const toggleExpand = agent => {
-  if (expandedAgentId.value === agent.id) {
-    expandedAgentId.value = null;
+const toggleExpand = user => {
+  if (expandedUserId.value === user.id) {
+    expandedUserId.value = null;
     showAssignForm.value = false;
   } else {
-    expandedAgentId.value = agent.id;
+    expandedUserId.value = user.id;
     showAssignForm.value = false;
   }
 };
 
 const assignmentLabel = assignment => {
-  if (assignment.queue_name) {
-    return assignment.queue_name;
-  }
+  if (assignment.queue_name) return assignment.queue_name;
   return assignment.edition_name || assignment.edition_id;
 };
 
-// Agent CRUD
-const openAddModal = () => {
-  selectedAgent.value = null;
-  showAddModal.value = true;
-};
-
-const closeAddModal = () => {
-  showAddModal.value = false;
-};
-
-const onAddAgent = async agentData => {
-  try {
-    await VoltAPI.addTwilioAgent({
-      agent_phone: agentData.agent_phone,
-      agent_name: agentData.agent_name,
-      show_caller_id: agentData.show_caller_id,
-      is_active: agentData.is_active,
-    });
-    useAlert(t('CALLS.API.AGENT_ADDED'));
-    closeAddModal();
-    await refreshAgents();
-  } catch {
-    useAlert(t('CALLS.API.ERROR'));
-    addModalRef.value?.resetSubmitting();
-  }
-};
-
-const openEditModal = agent => {
-  selectedAgent.value = agent;
-  showEditModal.value = true;
-};
-
-const closeEditModal = () => {
-  showEditModal.value = false;
-  selectedAgent.value = null;
-};
-
-const onEditAgent = async agentData => {
-  try {
-    await VoltAPI.updateTwilioAgent(selectedAgent.value.id, {
-      agent_phone: agentData.agent_phone,
-      agent_name: agentData.agent_name,
-      show_caller_id: agentData.show_caller_id,
-      is_active: agentData.is_active,
-    });
-    useAlert(t('CALLS.API.AGENT_UPDATED'));
-    closeEditModal();
-    await refreshAgents();
-  } catch {
-    useAlert(t('CALLS.API.ERROR'));
-    editModalRef.value?.resetSubmitting();
-  }
-};
-
-const openDeleteConfirm = agent => {
-  selectedAgent.value = agent;
-  showDeleteConfirm.value = true;
-};
-
-const closeDeleteConfirm = () => {
-  showDeleteConfirm.value = false;
-  selectedAgent.value = null;
-};
-
-const onDeleteAgent = async () => {
-  const agentId = selectedAgent.value.id;
-  try {
-    await VoltAPI.deleteTwilioAgent(agentId);
-    useAlert(t('CALLS.API.AGENT_DELETED'));
-    if (expandedAgentId.value === agentId) {
-      expandedAgentId.value = null;
-    }
-    closeDeleteConfirm();
-    await refreshAgents();
-  } catch {
-    useAlert(t('CALLS.API.ERROR'));
-  }
-};
-
-// Assignment CRUD
 const openAssignForm = () => {
   assignType.value = 'queue';
   assignQueueName.value = 'support';
@@ -177,12 +85,8 @@ const openAssignForm = () => {
   showAssignForm.value = true;
 };
 
-const cancelAssignForm = () => {
-  showAssignForm.value = false;
-};
-
 const addAssignment = async () => {
-  const agentId = expandedAgentId.value;
+  const userId = expandedUserId.value;
   const data = { priority: assignPriority.value, is_active: 1 };
   if (assignType.value === 'queue') {
     data.queue_name = assignQueueName.value;
@@ -190,20 +94,20 @@ const addAssignment = async () => {
     data.edition_id = assignEditionId.value;
   }
   try {
-    await VoltAPI.addAgentAssignment(agentId, data);
+    await VoltAPI.addAgentAssignment(userId, data);
     useAlert(t('CALLS.API.ASSIGNMENT_ADDED'));
     showAssignForm.value = false;
-    await refreshAgents();
+    await refreshUsers();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   }
 };
 
-const removeAssignment = async (agentId, assignmentId) => {
+const removeAssignment = async (userId, assignmentId) => {
   try {
-    await VoltAPI.deleteAgentAssignment(agentId, assignmentId);
+    await VoltAPI.deleteAgentAssignment(userId, assignmentId);
     useAlert(t('CALLS.API.ASSIGNMENT_REMOVED'));
-    await refreshAgents();
+    await refreshUsers();
   } catch {
     useAlert(t('CALLS.API.ERROR'));
   }
@@ -219,72 +123,44 @@ onMounted(fetchData);
   >
     <template #header>
       <BaseSettingsHeader
-        :title="t('CALLS.AGENTS.HEADER')"
-        :description="t('CALLS.AGENTS.DESCRIPTION')"
-      >
-        <template #actions>
-          <Button
-            :label="t('CALLS.AGENTS.ADD')"
-            size="sm"
-            icon="i-lucide-plus"
-            @click="openAddModal"
-          />
-        </template>
-      </BaseSettingsHeader>
+        title="Phone Agents"
+        description="Staff members with phone numbers who can receive calls. Assign them to queues and editions."
+      />
     </template>
 
     <template #body>
       <BaseTable
-        v-if="agents.length"
+        v-if="users.length"
         :headers="tableHeaders"
-        :items="agents"
+        :items="users"
       >
         <template #row="{ items }">
-          <template v-for="agent in items" :key="agent.id">
+          <template v-for="user in items" :key="user.id">
             <BaseTableRow
-              :item="agent"
+              :item="user"
               class="cursor-pointer hover:bg-n-alpha-1"
-              @click="toggleExpand(agent)"
+              @click="toggleExpand(user)"
             >
               <template #default>
                 <BaseTableCell>
                   <span class="text-body-main text-n-slate-12 font-medium">
-                    {{ agent.agent_name || '—' }}
+                    {{ user.name || '—' }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
                   <span class="text-body-main text-n-slate-11">
-                    {{ agent.agent_phone }}
+                    {{ user.phonenumber }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
-                  <span
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                    :class="
-                      agent.show_caller_id
-                        ? 'bg-n-teal-2 text-n-teal-11'
-                        : 'bg-n-alpha-2 text-n-slate-11'
-                    "
-                  >
-                    {{ agent.show_caller_id ? 'Yes' : 'No' }}
-                  </span>
-                </BaseTableCell>
-                <BaseTableCell>
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                    :class="
-                      agent.is_active
-                        ? 'bg-n-teal-2 text-n-teal-11'
-                        : 'bg-n-alpha-2 text-n-slate-11'
-                    "
-                  >
-                    {{ agent.is_active ? 'Active' : 'Inactive' }}
+                  <span class="text-body-main text-n-slate-11">
+                    {{ user.email || '—' }}
                   </span>
                 </BaseTableCell>
                 <BaseTableCell>
                   <div class="flex flex-wrap gap-1">
                     <span
-                      v-for="asgn in (agent.assignments || [])"
+                      v-for="asgn in (user.assignments || [])"
                       :key="asgn.id"
                       class="inline-flex items-center rounded-full px-2 py-0.5 text-xs capitalize"
                       :class="
@@ -296,176 +172,143 @@ onMounted(fetchData);
                       {{ assignmentLabel(asgn) }}
                     </span>
                     <span
-                      v-if="!(agent.assignments || []).length"
+                      v-if="!(user.assignments || []).length"
                       class="text-xs text-n-slate-9"
                     >
-                      {{ t('CALLS.AGENTS.ASSIGNMENT.NONE') }}
+                      No assignments
                     </span>
                   </div>
                 </BaseTableCell>
                 <BaseTableCell align="end">
-                  <div class="flex gap-2 justify-end">
-                    <Button
-                      xs
-                      ghost
-                      slate
-                      icon="i-lucide-pencil"
-                      @click.stop="openEditModal(agent)"
-                    />
-                    <Button
-                      xs
-                      ghost
-                      class="text-n-slate-11 hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-                      icon="i-lucide-trash-2"
-                      @click.stop="openDeleteConfirm(agent)"
-                    />
-                    <Button
-                      xs
-                      ghost
-                      slate
-                      :icon="
-                        expandedAgentId === agent.id
-                          ? 'i-lucide-chevron-up'
-                          : 'i-lucide-chevron-down'
-                      "
-                      @click.stop="toggleExpand(agent)"
-                    />
-                  </div>
+                  <Button
+                    xs
+                    ghost
+                    slate
+                    :icon="
+                      expandedUserId === user.id
+                        ? 'i-lucide-chevron-up'
+                        : 'i-lucide-chevron-down'
+                    "
+                    @click.stop="toggleExpand(user)"
+                  />
                 </BaseTableCell>
               </template>
             </BaseTableRow>
 
             <!-- Expanded assignments -->
-            <tr v-if="expandedAgentId === agent.id">
-              <td colspan="6" class="px-4 py-3 bg-n-alpha-1">
+            <tr v-if="expandedUserId === user.id">
+              <td colspan="5" class="px-4 py-3 bg-n-alpha-1">
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center justify-between mb-1">
                     <span class="text-sm font-medium text-n-slate-12">
-                      {{ t('CALLS.AGENTS.ASSIGNMENTS') }}
+                      Assignments
                     </span>
                     <Button
                       xs
                       faded
                       color="blue"
-                      :label="t('CALLS.AGENTS.ASSIGNMENT.ADD')"
+                      label="Add Assignment"
                       icon="i-lucide-plus"
                       @click="openAssignForm"
                     />
                   </div>
 
                   <div
-                    v-if="!(agent.assignments || []).length && !showAssignForm"
+                    v-if="!(user.assignments || []).length && !showAssignForm"
                     class="text-sm text-n-slate-11 py-2"
                   >
-                    {{ t('CALLS.AGENTS.ASSIGNMENT.NONE') }}
+                    No assignments yet
                   </div>
 
                   <div
-                    v-for="asgn in (agent.assignments || [])"
+                    v-for="asgn in (user.assignments || [])"
                     :key="asgn.id"
                     class="flex items-center justify-between rounded-lg bg-n-solid-1 px-3 py-2"
                   >
                     <div class="flex items-center gap-3">
-                      <span
-                        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs capitalize"
-                        :class="
-                          asgn.queue_name
-                            ? 'bg-n-slate-3 text-n-slate-12'
-                            : 'bg-n-blue-2 text-n-blue-11'
-                        "
-                      >
-                        {{ asgn.queue_name ? t('CALLS.AGENTS.ASSIGNMENT.QUEUE') : t('CALLS.AGENTS.ASSIGNMENT.EDITION') }}
-                      </span>
                       <span class="text-sm font-medium text-n-slate-12 capitalize">
                         {{ assignmentLabel(asgn) }}
                       </span>
-                      <span class="text-xs text-n-slate-11">
-                        {{ t('CALLS.AGENTS.ASSIGNMENT.PRIORITY') }}: {{ asgn.priority }}
-                      </span>
-                      <span
-                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                        :class="
-                          asgn.is_active
-                            ? 'bg-n-teal-2 text-n-teal-11'
-                            : 'bg-n-alpha-2 text-n-slate-11'
-                        "
-                      >
-                        {{ asgn.is_active ? 'Active' : 'Inactive' }}
+                      <span class="text-xs text-n-slate-9">
+                        Priority: {{ asgn.priority }}
                       </span>
                     </div>
                     <Button
                       xs
                       ghost
-                      class="text-n-slate-11 hover:enabled:text-n-ruby-11 hover:enabled:bg-n-ruby-2"
-                      icon="i-lucide-trash-2"
-                      @click="removeAssignment(agent.id, asgn.id)"
+                      class="text-n-slate-11 hover:enabled:text-n-ruby-11"
+                      icon="i-lucide-x"
+                      @click="removeAssignment(user.id, asgn.id)"
                     />
                   </div>
 
                   <!-- Add assignment form -->
                   <div
                     v-if="showAssignForm"
-                    class="flex items-center gap-2 flex-wrap rounded-lg bg-n-solid-1 px-3 py-2"
+                    class="flex items-end gap-2 rounded-lg bg-n-solid-1 px-3 py-2"
                   >
-                    <select
-                      v-model="assignType"
-                      class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-                    >
-                      <option value="queue">
-                        {{ t('CALLS.AGENTS.ASSIGNMENT.TYPE_QUEUE') }}
-                      </option>
-                      <option value="edition">
-                        {{ t('CALLS.AGENTS.ASSIGNMENT.TYPE_EDITION') }}
-                      </option>
-                    </select>
-
-                    <select
-                      v-if="assignType === 'queue'"
-                      v-model="assignQueueName"
-                      class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12 capitalize"
-                    >
-                      <option v-for="q in QUEUE_OPTIONS" :key="q" :value="q">
-                        {{ q }}
-                      </option>
-                    </select>
-
-                    <select
-                      v-else
-                      v-model="assignEditionId"
-                      class="rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
-                    >
-                      <option
-                        v-for="ed in editions"
-                        :key="ed.id"
-                        :value="ed.id"
+                    <div>
+                      <label class="text-xs text-n-slate-11">Type</label>
+                      <select
+                        v-model="assignType"
+                        class="block mt-0.5 rounded-lg border border-n-weak bg-n-solid-2 px-2 py-1.5 text-sm text-n-slate-12"
                       >
-                        {{ ed.name }}
-                      </option>
-                    </select>
-
-                    <div class="flex items-center gap-1">
-                      <label class="text-xs text-n-slate-11">
-                        {{ t('CALLS.AGENTS.ASSIGNMENT.PRIORITY') }}:
-                      </label>
+                        <option value="queue">Queue</option>
+                        <option value="edition">Edition</option>
+                      </select>
+                    </div>
+                    <div v-if="assignType === 'queue'">
+                      <label class="text-xs text-n-slate-11">Queue</label>
+                      <select
+                        v-model="assignQueueName"
+                        class="block mt-0.5 rounded-lg border border-n-weak bg-n-solid-2 px-2 py-1.5 text-sm text-n-slate-12"
+                      >
+                        <option
+                          v-for="q in QUEUE_OPTIONS"
+                          :key="q"
+                          :value="q"
+                        >
+                          {{ q }}
+                        </option>
+                      </select>
+                    </div>
+                    <div v-else>
+                      <label class="text-xs text-n-slate-11">Edition</label>
+                      <select
+                        v-model="assignEditionId"
+                        class="block mt-0.5 rounded-lg border border-n-weak bg-n-solid-2 px-2 py-1.5 text-sm text-n-slate-12"
+                      >
+                        <option
+                          v-for="ed in editions"
+                          :key="ed.id"
+                          :value="ed.id"
+                        >
+                          {{ ed.name }}
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="text-xs text-n-slate-11">Priority</label>
                       <input
                         v-model.number="assignPriority"
                         type="number"
                         min="0"
-                        class="w-16 rounded-lg border border-n-weak bg-n-alpha-black2 px-2 py-1.5 text-sm text-n-slate-12"
+                        class="block mt-0.5 w-16 rounded-lg border border-n-weak bg-n-solid-2 px-2 py-1.5 text-sm text-n-slate-12"
                       />
                     </div>
-
                     <Button
                       xs
-                      :label="t('CALLS.AGENTS.ASSIGNMENT.ADD')"
+                      faded
+                      color="blue"
+                      label="Add"
                       @click="addAssignment"
                     />
                     <Button
                       xs
-                      faded
+                      ghost
                       slate
-                      :label="t('CALLS.ADD_AGENT.CANCEL')"
-                      @click="cancelAssignForm"
+                      label="Cancel"
+                      @click="showAssignForm = false"
                     />
                   </div>
                 </div>
@@ -475,37 +318,8 @@ onMounted(fetchData);
         </template>
       </BaseTable>
       <p v-else class="text-sm text-n-slate-11 py-4">
-        {{ t('CALLS.AGENTS.EMPTY') }}
+        No staff members with phone numbers found.
       </p>
     </template>
-
-    <woot-modal v-model:show="showAddModal" :on-close="closeAddModal">
-      <AddAgentModal
-        ref="addModalRef"
-        identity-only
-        @submit="onAddAgent"
-        @close="closeAddModal"
-      />
-    </woot-modal>
-
-    <woot-modal v-model:show="showEditModal" :on-close="closeEditModal">
-      <AddAgentModal
-        ref="editModalRef"
-        identity-only
-        :agent="selectedAgent"
-        @submit="onEditAgent"
-        @close="closeEditModal"
-      />
-    </woot-modal>
-
-    <woot-delete-modal
-      v-model:show="showDeleteConfirm"
-      :on-close="closeDeleteConfirm"
-      :on-confirm="onDeleteAgent"
-      :title="t('CALLS.AGENTS.DELETE_TITLE')"
-      :message="t('CALLS.AGENTS.DELETE_MESSAGE')"
-      :confirm-text="t('CALLS.AGENTS.DELETE_CONFIRM')"
-      :reject-text="t('CALLS.AGENTS.DELETE_CANCEL')"
-    />
   </SettingsLayout>
 </template>

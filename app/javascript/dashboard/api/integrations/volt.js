@@ -79,58 +79,42 @@ class VoltAPI extends ApiClient {
     return axios.get(`${this.url}/twilio_queues`);
   }
 
-  // Agent identity CRUD
+  // Agent list (InternalUsers with phone numbers)
   getTwilioAgents() {
     log('GET', 'twilio_agents');
     return axios.get(`${this.url}/twilio_agents`);
   }
 
-  getTwilioAgent(agentId) {
-    log('GET', `twilio_agents/${agentId}`);
-    return axios.get(`${this.url}/twilio_agents/${agentId}`);
-  }
-
-  addTwilioAgent(data) {
-    log('POST', 'twilio_agents', data);
-    return axios.post(`${this.url}/twilio_agents`, data);
-  }
-
-  updateTwilioAgent(agentId, data) {
-    log('PUT', `twilio_agents/${agentId}`, data);
-    return axios.put(`${this.url}/twilio_agents/${agentId}`, data);
-  }
-
-  deleteTwilioAgent(agentId) {
-    log('DELETE', `twilio_agents/${agentId}`);
-    return axios.delete(`${this.url}/twilio_agents/${agentId}`);
-  }
-
-  // Agent assignment CRUD
+  // Agent assignment CRUD (agentId = InternalUser ID, needs URL encoding for | chars)
   getAgentAssignments(agentId) {
-    log('GET', `twilio_agents/${agentId}/assignments`);
-    return axios.get(`${this.url}/twilio_agents/${agentId}/assignments`);
+    const encoded = encodeURIComponent(agentId);
+    log('GET', `twilio_agents/${encoded}/assignments`);
+    return axios.get(`${this.url}/twilio_agents/${encoded}/assignments`);
   }
 
   addAgentAssignment(agentId, data) {
-    log('POST', `twilio_agents/${agentId}/assignments`, data);
+    const encoded = encodeURIComponent(agentId);
+    log('POST', `twilio_agents/${encoded}/assignments`, data);
     return axios.post(
-      `${this.url}/twilio_agents/${agentId}/assignments`,
+      `${this.url}/twilio_agents/${encoded}/assignments`,
       data
     );
   }
 
   updateAgentAssignment(agentId, assignmentId, data) {
-    log('PUT', `twilio_agents/${agentId}/assignments/${assignmentId}`, data);
+    const encoded = encodeURIComponent(agentId);
+    log('PUT', `twilio_agents/${encoded}/assignments/${assignmentId}`, data);
     return axios.put(
-      `${this.url}/twilio_agents/${agentId}/assignments/${assignmentId}`,
+      `${this.url}/twilio_agents/${encoded}/assignments/${assignmentId}`,
       data
     );
   }
 
   deleteAgentAssignment(agentId, assignmentId) {
-    log('DELETE', `twilio_agents/${agentId}/assignments/${assignmentId}`);
+    const encoded = encodeURIComponent(agentId);
+    log('DELETE', `twilio_agents/${encoded}/assignments/${assignmentId}`);
     return axios.delete(
-      `${this.url}/twilio_agents/${agentId}/assignments/${assignmentId}`
+      `${this.url}/twilio_agents/${encoded}/assignments/${assignmentId}`
     );
   }
 

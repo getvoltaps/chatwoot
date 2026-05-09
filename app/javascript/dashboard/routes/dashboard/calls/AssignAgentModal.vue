@@ -12,34 +12,34 @@ const emit = defineEmits(['submit', 'close']);
 
 const { t } = useI18n();
 
-const allAgents = ref([]);
-const isLoadingAgents = ref(true);
-const selectedAgentId = ref('');
+const allUsers = ref([]);
+const isLoading = ref(true);
+const selectedUserId = ref('');
 const priority = ref(0);
 const isSubmitting = ref(false);
 
-const availableAgents = computed(() =>
-  allAgents.value.filter(a => !props.excludeAgentIds.includes(a.id))
+const availableUsers = computed(() =>
+  allUsers.value.filter(u => !props.excludeAgentIds.includes(u.id))
 );
 
-const selectedAgent = computed(() =>
-  allAgents.value.find(a => a.id === selectedAgentId.value)
+const selectedUser = computed(() =>
+  allUsers.value.find(u => u.id === selectedUserId.value)
 );
 
-const canSubmit = computed(() => !!selectedAgentId.value && !isSubmitting.value);
+const canSubmit = computed(() => !!selectedUserId.value && !isSubmitting.value);
 
-const fetchAgents = async () => {
-  isLoadingAgents.value = true;
+const fetchUsers = async () => {
+  isLoading.value = true;
   try {
     const { data } = await VoltAPI.getTwilioAgents();
-    allAgents.value = Array.isArray(data) ? data : [];
-    if (availableAgents.value.length) {
-      selectedAgentId.value = availableAgents.value[0].id;
+    allUsers.value = Array.isArray(data) ? data : [];
+    if (availableUsers.value.length) {
+      selectedUserId.value = availableUsers.value[0].id;
     }
   } catch {
     // silent
   } finally {
-    isLoadingAgents.value = false;
+    isLoading.value = false;
   }
 };
 
@@ -48,8 +48,8 @@ const onSubmit = () => {
   isSubmitting.value = true;
 
   emit('submit', {
-    agent_id: selectedAgentId.value,
-    agent: selectedAgent.value,
+    internal_user_id: selectedUserId.value,
+    user: selectedUser.value,
     priority: priority.value,
   });
 };
@@ -60,7 +60,7 @@ const resetSubmitting = () => {
 
 defineExpose({ resetSubmitting });
 
-onMounted(fetchAgents);
+onMounted(fetchUsers);
 </script>
 
 <template>
@@ -71,23 +71,23 @@ onMounted(fetchAgents);
         <label class="text-sm font-medium text-n-slate-12">
           {{ t('CALLS.ASSIGN_AGENT.SELECT_LABEL') }}
         </label>
-        <div v-if="isLoadingAgents" class="text-sm text-n-slate-11 py-2">
+        <div v-if="isLoading" class="text-sm text-n-slate-11 py-2">
           {{ t('CALLS.LOADING') }}
         </div>
         <select
           v-else
-          v-model="selectedAgentId"
+          v-model="selectedUserId"
           class="w-full mt-1 rounded-lg border border-n-weak bg-n-solid-2 px-3 py-2 text-sm text-n-slate-12 outline-none focus:border-n-brand"
         >
-          <option v-if="!availableAgents.length" value="" disabled>
+          <option v-if="!availableUsers.length" value="" disabled>
             {{ t('CALLS.ASSIGN_AGENT.NO_AGENTS') }}
           </option>
           <option
-            v-for="agent in availableAgents"
-            :key="agent.id"
-            :value="agent.id"
+            v-for="user in availableUsers"
+            :key="user.id"
+            :value="user.id"
           >
-            {{ agent.agent_name || agent.agent_phone }} ({{ agent.agent_phone }})
+            {{ user.name }} ({{ user.phonenumber }})
           </option>
         </select>
       </div>

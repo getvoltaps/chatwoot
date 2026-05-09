@@ -152,10 +152,10 @@ const closeAddAgentModal = () => {
   selectedQueueName.value = null;
 };
 
-const onAddGenericAgent = async ({ agent_id, priority }) => {
+const onAddGenericAgent = async ({ internal_user_id, priority }) => {
   const queueName = selectedQueueName.value;
   try {
-    await VoltAPI.addAgentAssignment(agent_id, {
+    await VoltAPI.addAgentAssignment(internal_user_id, {
       queue_name: queueName,
       priority,
     });
@@ -182,13 +182,6 @@ const closeEditAgentModal = () => {
 const onEditGenericAgent = async agentData => {
   try {
     const agent = selectedAgent.value;
-    // Update agent identity
-    await VoltAPI.updateTwilioAgent(agent.id, {
-      agent_phone: agentData.agent_phone,
-      agent_name: agentData.agent_name,
-      show_caller_id: agentData.show_caller_id,
-      is_active: agentData.is_active,
-    });
     // Update assignment priority
     const assignment = getQueueAssignment(agent, expandedQueue.value);
     if (assignment && agentData.priority !== undefined) {
@@ -465,20 +458,10 @@ onMounted(fetchQueues);
                     >
                       <div class="flex items-center gap-3">
                         <span class="text-sm font-medium text-n-slate-12">
-                          {{ agent.agent_name || '—' }}
+                          {{ agent.name || '—' }}
                         </span>
                         <span class="text-sm text-n-slate-11">
-                          {{ agent.agent_phone }}
-                        </span>
-                        <span
-                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                          :class="
-                            agent.is_active
-                              ? 'bg-n-teal-2 text-n-teal-11'
-                              : 'bg-n-alpha-2 text-n-slate-11'
-                          "
-                        >
-                          {{ agent.is_active ? 'Active' : 'Inactive' }}
+                          {{ agent.phonenumber }}
                         </span>
                       </div>
                       <div class="flex items-center gap-1">
