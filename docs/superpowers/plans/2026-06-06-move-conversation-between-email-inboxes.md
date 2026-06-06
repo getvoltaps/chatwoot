@@ -270,6 +270,10 @@ The enterprise controller is prepended onto the OSS controller, so the new `move
 
 No commit unless an override is required. If a change is needed, mirror it under `enterprise/` and add a spec under `spec/enterprise/`.
 
+**Finding (inspected):** No enterprise change required.
+- `Enterprise::Api::V1::Accounts::ConversationsController` is a concern that only adds methods (`inbox_assistant`, `reporting_events`, `copilot_params`) and overrides `permitted_update_params`. It does not override action dispatch, so the new `move_to_inbox` action is inherited unchanged in enterprise builds.
+- `Enterprise::ConversationPolicy#show?` strengthens `show?` with custom-role permission checks (calls `super` first). Because `move_to_inbox` authorizes via `show?` on the conversation (through `before_action :conversation`) and `show?` on the target inbox, enterprise custom-role gating applies automatically. Same access rules, no override needed.
+
 ---
 
 ## Task 4: Frontend API method
