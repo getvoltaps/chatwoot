@@ -632,6 +632,17 @@ Open a non-email conversation (e.g. web widget) and verify the "Move to inbox" i
 
 ---
 
+## Verification status (IMPORTANT — read before merge)
+
+The implementation was completed and reviewed (two-stage: spec compliance + code quality) on a machine **without a Ruby 3.4.4 toolchain and without `node_modules` installed**. Consequently the following were **NOT executed** and MUST be run on a provisioned dev machine before merge:
+
+- `bundle exec rspec spec/services/conversations/move_to_inbox_service_spec.rb` — the backend service spec (7 examples).
+- `bundle exec rubocop app/services/conversations/move_to_inbox_service.rb app/controllers/api/v1/accounts/conversations_controller.rb` — Ruby lint.
+- `pnpm eslint app/javascript/dashboard/components-next/ConversationWorkflow/MoveToInboxModal.vue app/javascript/dashboard/components/buttons/ResolveAction.vue app/javascript/dashboard/store/modules/conversations/actions.js app/javascript/dashboard/api/inbox/conversation.js` (or `pnpm eslint:fix`).
+- Task 9 manual end-to-end (below).
+
+What WAS verified statically in the build environment: Ruby `-c` syntax for service/controller/routes; JSON validity of `en/conversation.json`; i18n key resolution for both `en.yml` (`conversations.activity.moved_to_inbox`) and `en/conversation.json` (all `MOVE_TO_INBOX.*` + `RESOLVE_DROPDOWN.MOVE_TO_INBOX`); namespaced Vuex getter keys (`inboxes/getInboxes`, `inboxes/getInbox`); and full call-chain consistency route ↔ controller ↔ service ↔ API ↔ store action ↔ component.
+
 ## Self-Review Notes
 
 - **Spec coverage:** Core move (inbox_id), contact_inbox repoint, message migration, activity log, and all three validation errors → Task 1 spec. Endpoint → Task 2. Enterprise → Task 3. Frontend (API/store/i18n/modal/dropdown) → Tasks 4–8. Reply-from-new-inbox (the "update receiving email" requirement) → verified in Task 9 Step 4 (no code needed; mailer resolves inbox at send time).
