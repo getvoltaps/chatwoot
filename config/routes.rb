@@ -150,6 +150,7 @@ Rails.application.routes.draw do
               post :mute
               post :unmute
               post :transcript
+              post :move_to_inbox
               post :toggle_status
               post :toggle_priority
               post :toggle_typing_status
