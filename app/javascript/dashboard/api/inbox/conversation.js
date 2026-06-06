@@ -62,6 +62,12 @@ class ConversationApi extends ApiClient {
     });
   }
 
+  moveToInbox({ conversationId, inboxId }) {
+    return axios.post(`${this.url}/${conversationId}/move_to_inbox`, {
+      inbox_id: inboxId,
+    });
+  }
+
   assignAgent({ conversationId, agentId }) {
     return axios.post(`${this.url}/${conversationId}/assignments`, {
       assignee_id: agentId,
