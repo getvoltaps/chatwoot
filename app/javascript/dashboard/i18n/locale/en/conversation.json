@@ -1,5 +1,15 @@
 {
   "CONVERSATION": {
+    "MOVE_TO_INBOX": {
+      "TITLE": "Move to inbox",
+      "DESCRIPTION": "Select an email inbox to move this conversation to. Future replies will be sent from that inbox.",
+      "SELECT_LABEL": "Inbox",
+      "SELECT_PLACEHOLDER": "Select an inbox",
+      "CONFIRM": "Move conversation",
+      "CANCEL": "Cancel",
+      "SUCCESS": "Conversation moved to {inboxName}",
+      "ERROR": "Could not move conversation. Please try again."
+    },
     "SELECT_A_CONVERSATION": "Please select a conversation from left pane",
     "CSAT_REPLY_MESSAGE": "Please rate the conversation",
     "404": "Sorry, we cannot find the conversation. Please try again",
@@ -107,6 +117,7 @@
     "RESOLVE_DROPDOWN": {
       "MARK_PENDING": "Mark as pending",
       "SNOOZE_UNTIL": "Snooze",
+      "MOVE_TO_INBOX": "Move to inbox",
       "SNOOZE": {
         "TITLE": "Snooze until",
         "NEXT_REPLY": "Next reply",
