@@ -84,8 +84,8 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     Conversations::MoveToInboxService.new(conversation: @conversation, target_inbox: target_inbox).perform
     @conversation.reload
     render 'api/v1/accounts/conversations/show', formats: [:json]
-  rescue StandardError => e
-    render json: { error: e.message }, status: :unprocessable_entity
+  rescue ArgumentError => e
+    render_could_not_create_error(e.message)
   end
 
   def toggle_status
