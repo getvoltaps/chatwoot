@@ -123,10 +123,12 @@ const handleMoveToInbox = async ({ inboxId }) => {
     });
     const movedInbox = getters['inboxes/getInbox'].value(inboxId);
     useAlert(
-      t('CONVERSATION.MOVE_TO_INBOX.SUCCESS', { inboxName: movedInbox?.name || '' })
+      t('CONVERSATION.MOVE_TO_INBOX.SUCCESS', {
+        inboxName: movedInbox?.name || '',
+      })
     );
     return data;
-  } catch (error) {
+  } catch {
     useAlert(t('CONVERSATION.MOVE_TO_INBOX.ERROR'));
     return null;
   }
