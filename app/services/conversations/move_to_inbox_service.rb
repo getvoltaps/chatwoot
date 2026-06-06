@@ -17,10 +17,10 @@ class Conversations::MoveToInboxService
   private
 
   def validate!
-    raise StandardError, 'Target inbox not in account' if target_inbox.account_id != conversation.account_id
-    raise StandardError, 'Already in this inbox' if target_inbox.id == conversation.inbox_id
-    raise StandardError, 'Only email inboxes are supported' unless target_inbox.channel_type == 'Channel::Email'
-    raise StandardError, 'Contact has no email' if conversation.contact.email.blank?
+    raise ArgumentError, 'Target inbox not in account' if target_inbox.account_id != conversation.account_id
+    raise ArgumentError, 'Already in this inbox' if target_inbox.id == conversation.inbox_id
+    raise ArgumentError, 'Only email inboxes are supported' unless target_inbox.channel_type == 'Channel::Email'
+    raise ArgumentError, 'Contact has no email' if conversation.contact.email.blank?
   end
 
   def build_contact_inbox
@@ -44,7 +44,7 @@ class Conversations::MoveToInboxService
   def log_activity
     content = I18n.t(
       'conversations.activity.moved_to_inbox',
-      user_name: Current.user&.name || 'System',
+      user_name: Current.user&.name || I18n.t('automation.system_name'),
       inbox_name: target_inbox.name
     )
     conversation.messages.create!(
