@@ -255,6 +255,7 @@ en:
         auto_opened_after_agent_reply: 'Conversation was marked open automatically after an agent reply'
       agent_bot:
         error_moved_to_open: 'Conversation was marked open by system due to an error with the agent bot.'
+      moved_to_inbox: "%{user_name} moved the conversation to %{inbox_name}"
       status:
         resolved: 'Conversation was marked resolved by %{user_name}'
         contact_resolved: 'Conversation was resolved by %{contact_name}'
