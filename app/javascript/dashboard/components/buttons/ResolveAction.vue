@@ -20,6 +20,7 @@ import {
 import ButtonGroup from 'dashboard/components-next/buttonGroup/ButtonGroup.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import ConversationResolveAttributesModal from 'dashboard/components-next/ConversationWorkflow/ConversationResolveAttributesModal.vue';
+import MoveToInboxModal from 'dashboard/components-next/ConversationWorkflow/MoveToInboxModal.vue';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -29,6 +30,7 @@ const { checkMissingAttributes } = useConversationRequiredAttributes();
 const arrowDownButtonRef = ref(null);
 const isLoading = ref(false);
 const resolveAttributesModalRef = ref(null);
+const moveToInboxModalRef = ref(null);
 const resolveShortcut = useKbd(['alt', '+', 'E']);
 
 const [showActionsDropdown, toggleDropdown] = useToggle();
@@ -101,6 +103,35 @@ const toggleStatus = (status, snoozedUntil, customAttributes = null) => {
     useAlert(t('CONVERSATION.CHANGE_STATUS'));
     isLoading.value = false;
   });
+};
+
+const isEmailInbox = computed(() => {
+  const inbox = getters['inboxes/getInbox'].value(currentChat.value?.inbox_id);
+  return inbox?.channel_type === 'Channel::Email';
+});
+
+const openMoveToInboxModal = () => {
+  closeDropdown();
+  moveToInboxModalRef.value?.open();
+};
+
+const handleMoveToInbox = async ({ inboxId }) => {
+  try {
+    const data = await store.dispatch('moveConversationToInbox', {
+      conversationId: currentChat.value.id,
+      inboxId,
+    });
+    const movedInbox = getters['inboxes/getInbox'].value(inboxId);
+    useAlert(
+      t('CONVERSATION.MOVE_TO_INBOX.SUCCESS', {
+        inboxName: movedInbox?.name || '',
+      })
+    );
+    return data;
+  } catch {
+    useAlert(t('CONVERSATION.MOVE_TO_INBOX.ERROR'));
+    return null;
+  }
 };
 
 const handleResolveWithAttributes = ({ attributes, context }) => {
@@ -250,11 +281,28 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
             @click="() => toggleStatus(wootConstants.STATUS_TYPE.PENDING)"
           />
         </WootDropdownItem>
+        <WootDropdownItem v-if="isEmailInbox">
+          <Button
+            :label="t('CONVERSATION.RESOLVE_DROPDOWN.MOVE_TO_INBOX')"
+            ghost
+            slate
+            sm
+            start
+            icon="i-lucide-move-right"
+            class="w-full"
+            @click="() => openMoveToInboxModal()"
+          />
+        </WootDropdownItem>
       </WootDropdownMenu>
     </div>
     <ConversationResolveAttributesModal
       ref="resolveAttributesModalRef"
       @submit="handleResolveWithAttributes"
+    />
+    <MoveToInboxModal
+      ref="moveToInboxModalRef"
+      :current-inbox-id="currentChat.inbox_id"
+      @submit="handleMoveToInbox"
     />
   </div>
 </template>

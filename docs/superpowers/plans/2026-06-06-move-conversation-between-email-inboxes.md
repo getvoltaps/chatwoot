@@ -270,6 +270,10 @@ The enterprise controller is prepended onto the OSS controller, so the new `move
 
 No commit unless an override is required. If a change is needed, mirror it under `enterprise/` and add a spec under `spec/enterprise/`.
 
+**Finding (inspected):** No enterprise change required.
+- `Enterprise::Api::V1::Accounts::ConversationsController` is a concern that only adds methods (`inbox_assistant`, `reporting_events`, `copilot_params`) and overrides `permitted_update_params`. It does not override action dispatch, so the new `move_to_inbox` action is inherited unchanged in enterprise builds.
+- `Enterprise::ConversationPolicy#show?` strengthens `show?` with custom-role permission checks (calls `super` first). Because `move_to_inbox` authorizes via `show?` on the conversation (through `before_action :conversation`) and `show?` on the target inbox, enterprise custom-role gating applies automatically. Same access rules, no override needed.
+
 ---
 
 ## Task 4: Frontend API method
@@ -627,6 +631,17 @@ Reply to the moved conversation as an agent. Confirm (via mail log / `letter_ope
 Open a non-email conversation (e.g. web widget) and verify the "Move to inbox" item does NOT appear in the Resolve dropdown.
 
 ---
+
+## Verification status (IMPORTANT — read before merge)
+
+The implementation was completed and reviewed (two-stage: spec compliance + code quality) on a machine **without a Ruby 3.4.4 toolchain and without `node_modules` installed**. Consequently the following were **NOT executed** and MUST be run on a provisioned dev machine before merge:
+
+- `bundle exec rspec spec/services/conversations/move_to_inbox_service_spec.rb` — the backend service spec (7 examples).
+- `bundle exec rubocop app/services/conversations/move_to_inbox_service.rb app/controllers/api/v1/accounts/conversations_controller.rb` — Ruby lint.
+- `pnpm eslint app/javascript/dashboard/components-next/ConversationWorkflow/MoveToInboxModal.vue app/javascript/dashboard/components/buttons/ResolveAction.vue app/javascript/dashboard/store/modules/conversations/actions.js app/javascript/dashboard/api/inbox/conversation.js` (or `pnpm eslint:fix`).
+- Task 9 manual end-to-end (below).
+
+What WAS verified statically in the build environment: Ruby `-c` syntax for service/controller/routes; JSON validity of `en/conversation.json`; i18n key resolution for both `en.yml` (`conversations.activity.moved_to_inbox`) and `en/conversation.json` (all `MOVE_TO_INBOX.*` + `RESOLVE_DROPDOWN.MOVE_TO_INBOX`); namespaced Vuex getter keys (`inboxes/getInboxes`, `inboxes/getInbox`); and full call-chain consistency route ↔ controller ↔ service ↔ API ↔ store action ↔ component.
 
 ## Self-Review Notes
 

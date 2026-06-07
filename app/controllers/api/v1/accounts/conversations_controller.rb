@@ -78,6 +78,16 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     head :ok
   end
 
+  def move_to_inbox
+    target_inbox = Current.account.inboxes.find(params[:inbox_id])
+    authorize target_inbox, :show?
+    Conversations::MoveToInboxService.new(conversation: @conversation, target_inbox: target_inbox).perform
+    @conversation.reload
+    render 'api/v1/accounts/conversations/show', formats: [:json]
+  rescue ArgumentError => e
+    render_could_not_create_error(e.message)
+  end
+
   def toggle_status
     # FIXME: move this logic into a service object
     if pending_to_open_by_bot?

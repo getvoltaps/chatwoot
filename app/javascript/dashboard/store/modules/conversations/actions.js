@@ -281,6 +281,15 @@ const actions = {
     }
   },
 
+  moveConversationToInbox: async ({ commit }, { conversationId, inboxId }) => {
+    const response = await ConversationApi.moveToInbox({
+      conversationId,
+      inboxId,
+    });
+    commit(types.UPDATE_CONVERSATION, response.data);
+    return response.data;
+  },
+
   createPendingMessageAndSend: async ({ dispatch }, data) => {
     const pendingMessage = createPendingMessage(data);
     dispatch('sendMessageWithData', pendingMessage);
